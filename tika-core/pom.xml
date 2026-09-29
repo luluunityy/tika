@@ -164,6 +164,7 @@
       </targetClasses>
       <targetTests>
         <param>org.apache.tika.utils.XMLReaderUtilsTest</param>
+        <param>org.apache.tika.utils.generated.*</param>
       </targetTests>
       <outputFormats>
         <param>HTML</param>

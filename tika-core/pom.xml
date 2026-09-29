@@ -124,6 +124,45 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>io.github.ZJU-ACES-ISE</groupId>
+        <artifactId>chatunitest-maven-plugin</artifactId>
+        <version>1.4.1</version>
+        <configuration>
+          <apiKeys>ollama</apiKeys>
+          <model>qwen2.5-coder:7b</model>
+          <url>http://localhost:11434/v1/chat/completions</url>
+          <testNumber>2</testNumber>
+          <maxRounds>3</maxRounds>
+        </configuration>
+      </plugin>
+      <plugin>
+    <groupId>org.pitest</groupId>
+    <artifactId>pitest-maven</artifactId>
+    <version>1.20.0</version>
+    <dependencies>
+      <dependency>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-junit5-plugin</artifactId>
+        <version>1.2.2</version>
+      </dependency>
+    </dependencies>
+    <configuration>
+      <targetClasses>
+        <param>org.apache.tika.utils.XMLReaderUtils</param>
+        <param>org.apache.tika.utils.CharsetUtils</param>
+      </targetClasses>
+      <targetTests>
+        <param>org.apache.tika.utils.XMLReaderUtilsTest</param>
+        <param>org.apache.tika.utils.CharsetUtilsTest</param>
+      </targetTests>
+      <outputFormats>
+        <param>HTML</param>
+        <param>XML</param>
+      </outputFormats>
+      <timestampedReports>false</timestampedReports>
+    </configuration>
+  </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>${checkstyle.plugin.version}</version>

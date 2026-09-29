@@ -144,6 +144,7 @@
           <url>http://localhost:11434/v1/chat/completions</url>
           <testNumber>2</testNumber>
           <maxRounds>3</maxRounds>
+          <maxPromptTokens>4096</maxPromptTokens>
         </configuration>
       </plugin>
       <plugin>

@@ -89,6 +89,17 @@
 
     <!-- Test dependencies -->
     <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito-junit-jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <scope>test</scope>
@@ -149,11 +160,9 @@
     <configuration>
       <targetClasses>
         <param>org.apache.tika.utils.XMLReaderUtils</param>
-        <param>org.apache.tika.utils.CharsetUtils</param>
       </targetClasses>
       <targetTests>
         <param>org.apache.tika.utils.XMLReaderUtilsTest</param>
-        <param>org.apache.tika.utils.CharsetUtilsTest</param>
       </targetTests>
       <outputFormats>
         <param>HTML</param>

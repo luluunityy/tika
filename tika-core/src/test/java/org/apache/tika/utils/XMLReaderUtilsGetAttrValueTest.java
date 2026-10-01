@@ -23,8 +23,10 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 import org.xml.sax.Attributes;
 
+// Tests unitaires manuels pour XMLReaderUtils.getAttrValue
 public class XMLReaderUtilsGetAttrValueTest {
 
+    // Vérifie que la boucle s'arrête strictement à la longueur sans déborder
     @Test
     public void testDoesNotReadPastLength() {
         Attributes atts = mock(Attributes.class);

@@ -27,13 +27,14 @@ import org.xml.sax.Attributes;
 
 import org.apache.tika.utils.XMLReaderUtils;
 
+// Tests générés par ChatUniTest pour XMLReaderUtils.getAttrValue
 public class XMLReaderUtils_getAttrValue_35_1_Test {
 
     @BeforeEach
     public void setUp() {
-        // Set up any necessary dependencies or configurations here
     }
 
+    // Vérifie que la valeur est bien trouvée quand l'attribut existe
     @Test
     public void testGetAttrValueFound() throws Exception {
         Attributes attributes = mock(Attributes.class);
@@ -44,6 +45,7 @@ public class XMLReaderUtils_getAttrValue_35_1_Test {
         assertEquals("value", result);
     }
 
+    // Vérifie qu'on retourne null sans erreur si l'attribut est absent
     @Test
     public void testGetAttrValueNotFound() throws Exception {
         Attributes attributes = mock(Attributes.class);

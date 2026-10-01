@@ -24,6 +24,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+// Tests unitaires manuels pour XMLReaderUtils.setPoolSize
 public class XMLReaderUtilsSetPoolSizeTest {
 
     @AfterEach
@@ -31,6 +32,7 @@ public class XMLReaderUtilsSetPoolSizeTest {
         XMLReaderUtils.setPoolSize(XMLReaderUtils.DEFAULT_POOL_SIZE);
     }
 
+    // Vérifie qu'un poolSize de 0 vide complètement les files de parsers
     @Test
     public void testZeroPoolSizeEmptiesPools() throws Exception {
         XMLReaderUtils.setPoolSize(0);
@@ -39,6 +41,7 @@ public class XMLReaderUtilsSetPoolSizeTest {
         assertEquals(0, pool("DOM_BUILDERS").size());
     }
 
+    // Vérifie que les pools internes sont bien remplis avec la taille demandée
     @Test
     public void testPoolsAreFilled() throws Exception {
         XMLReaderUtils.setPoolSize(3);

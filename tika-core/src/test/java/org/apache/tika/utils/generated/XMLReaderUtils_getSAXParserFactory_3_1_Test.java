@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import org.apache.tika.utils.XMLReaderUtils;
 
+// Tests générés par ChatUniTest pour XMLReaderUtils.getSAXParserFactory
 public class XMLReaderUtils_getSAXParserFactory_3_1_Test {
 
     private XMLReaderUtils xmlReaderUtils;
@@ -37,6 +38,7 @@ public class XMLReaderUtils_getSAXParserFactory_3_1_Test {
         xmlReaderUtils = new XMLReaderUtils();
     }
 
+    // Vérifie que le parser SAX est bien configuré avec les options de sécurité anti-XXE
     @Test
     public void testGetSAXParserFactory() throws Exception {
         SAXParserFactory factory = xmlReaderUtils.getSAXParserFactory();

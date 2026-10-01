@@ -14,36 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tika.utils.generated;
+package org.apache.tika.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-import java.lang.reflect.Method;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import org.apache.tika.utils.XMLReaderUtils;
+// Tests unitaires manuels pour CharsetUtils
+public class CharsetUtilsManualTest {
 
-// Tests générés par ChatUniTest pour XMLReaderUtils.setPoolSize
-public class XMLReaderUtils_setPoolSize_32_0_Test {
-
-    private XMLReaderUtils xmlReaderUtils;
-
-    private Method setPoolSizeMethod;
-
-    @BeforeEach
-    public void setUp() throws Exception {
-        xmlReaderUtils = new XMLReaderUtils();
-        setPoolSizeMethod = XMLReaderUtils.class.getDeclaredMethod("setPoolSize", int.class);
-        setPoolSizeMethod.setAccessible(true);
+    // Vérifie le nettoyage avec des délimiteurs et attributs superflus (ex: >, ;, virgule)
+    @Test
+    public void testCleanWithSpecialPrefixesAndCruft() {
+        assertEquals("UTF-8", CharsetUtils.clean("UTF-8>"));
+        assertEquals("ISO-8859-1", CharsetUtils.clean("iso-8859-1; charset=something"));
+        assertEquals("windows-1252", CharsetUtils.clean("win-1252, other"));
     }
 
-    // Vérifie que le réglage d'une taille positive met bien à jour la variable du pool
+    // Vérifie que les entrées invalides ou inconnues renvoient null sans lever d'exception
     @Test
-    public void testSetPoolSizeWithValidPoolSize() throws Exception {
-        int poolSize = 5;
-        setPoolSizeMethod.invoke(xmlReaderUtils, poolSize);
-        assertEquals(poolSize, XMLReaderUtils.getPoolSize());
+    public void testCleanWithUnsupportedOrInvalidPattern() {
+        assertNull(CharsetUtils.clean("   ,;<> "));
+        assertNull(CharsetUtils.clean("totally-unknown-nonexistent-charset"));
     }
 }

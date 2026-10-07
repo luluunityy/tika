@@ -242,3 +242,15 @@ Tous les tests passent en local :
 ```
 
 Résultat : 33 tests, 0 échec. Les nouveaux tests sont exécutés par le workflow GitHub Actions « main jdk17 build » du dépôt, déclenché à chaque push sur main.
+
+## 9. Déclaration d'utilisation de l'intelligence artificielle générative
+
+Outils d'intelligence artificielle : Claude Opus 5.5 (Anthropic), consulté le 7 octobre 2026 ; qwen2.5-coder:7b, exécuté localement avec Ollama par ChatUniTest, entre le 29 et le 30 septembre 2026 ;
+
+Génération de tests : qwen2.5-coder:7b a été utilisé par ChatUniTest pour générer les tests du paquet generated, comme le demande l'énoncé (section 2) ; 
+
+Claude a été utilisé pour proposer une structure du rapport qui suit les étapes et les critères d'évaluation de l'énoncé ; 
+
+Compréhension et approfondissement : Claude a été utilisé pour expliquer le fonctionnement des outils, notamment la configuration de PIT dans le pom, la différence entre mutants survivants, non couverts et en timeout, ainsi que la lecture des journaux de ChatUniTest; 
+
+Travail réalisé par le binôme : le choix des classes, l'exécution de ChatUniTest, l'écriture des tests manuels et la validation finale du rapport ; Confidentialité et sécurité : le code analysé provient du projet libre Apache Tika, qui est public. Les seuls renseignements personnels présents dans les fichiers consultés par l'outil sont les noms et matricules des membres du binôme, inscrits dans le rapport. Aucun autre renseignement personnel n'a été partagé.

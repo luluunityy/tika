@@ -254,3 +254,5 @@ Claude a été utilisé pour proposer une structure du rapport qui suit les éta
 Compréhension et approfondissement : Claude a été utilisé pour expliquer le fonctionnement des outils, notamment la configuration de PIT dans le pom, la différence entre mutants survivants, non couverts et en timeout, ainsi que la lecture des journaux de ChatUniTest; 
 
 Travail réalisé par le binôme : le choix des classes, l'exécution de ChatUniTest, l'écriture des tests manuels et la validation finale du rapport ; Confidentialité et sécurité : le code analysé provient du projet libre Apache Tika, qui est public. Les seuls renseignements personnels présents dans les fichiers consultés par l'outil sont les noms et matricules des membres du binôme, inscrits dans le rapport. Aucun autre renseignement personnel n'a été partagé.
+
+Paragraphe écrit en suivant la structure énoncée ici: https://boite-outils.bib.umontreal.ca/trouver-evaluer/iag?p=5377614

@@ -167,6 +167,7 @@
         <param>org.apache.tika.utils.XMLReaderUtilsTest</param>
         <param>org.apache.tika.utils.XMLReaderUtilsGetAttrValueTest</param>
         <param>org.apache.tika.utils.XMLReaderUtilsSetPoolSizeTest</param>
+        <param>org.apache.tika.utils.CharsetUtilsTest</param>
         <param>org.apache.tika.utils.CharsetUtilsManualTest</param>
         <param>org.apache.tika.utils.generated.*</param>
       </targetTests>

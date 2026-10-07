@@ -97,38 +97,42 @@ Les mesures de couverture de code (JaCoCo) et d'analyse mutationnelle (PIT) ont 
 | Configuration de Test | Couverture de Lignes (JaCoCo) | Couverture de Branches | Score de Mutation (PIT) | Mutants Tués / Total | Force des Tests (Test Strength) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **1. Baseline originale Tika** (aucun test dédié) | 0 % (0/81) | 0 % (0/32) | 0 % | 0 / 25 | N/A |
-| **2. Tests Générés seuls (ChatUniTest)** | 79 % (64/81) | 68 % (22/32) | 68 % | 17 / 25 | 77 % |
-| **3. Tests Manuels seuls (`CharsetUtilsManualTest`)** | 80 % (65/81) | 78 % (25/32) | 72 % | 18 / 25 | 86 % |
+| **2. Tests Générés seuls (ChatUniTest - 14 tests)** | 79 % (64/81) | 68 % (22/32) | 68 % | 17 / 25 | 77 % |
+| **3. Tests Manuels seuls (`CharsetUtilsManualTest` - 2 tests)** | 80 % (65/81) | 78 % (25/32) | 72 % | 18 / 25 | 86 % |
 | **4. Suite Complète Combinée (Manuels + LLM)** | **82 % (66/81)** | **78 % (25/32)** | **80 %** | **20 / 25** | **91 %** |
 
-*Remarque : Sur `CharsetUtils`, 5 mutants PIT restants correspondent à des mutants équivalents (notamment les alternatives de recherche NIO `Charset.isSupported` ou redondances regex).*
+*Remarques méthodologiques :*
+- *Densité des tests :* Bien que `CharsetUtilsManualTest` ne comporte que 2 méthodes de test, chacune applique un partitionnement multi-assertions dense testant simultanément plusieurs motifs regex (`CHARSET_NAME_PATTERN`, `ISO_NAME_PATTERN`, `WIN_NAME_PATTERN`) avec des délimiteurs complexes (virgules, point-virgules, chevrons), expliquant sa forte couverture de branches (78 %) comparée aux cas unitaires plus atomiques du LLM (68 %).
+- *Mutants équivalents :* Sur `CharsetUtils`, les 5 mutants PIT restants correspondent à des mutants équivalents (notamment des vérifications redondantes avec le sous-système JVM NIO `Charset.isSupported`).
 
 #### B. Synthèse sur `XMLReaderUtils` (Méthodes ciblées : `getAttrValue`, `setPoolSize`, `getSAXParserFactory`)
 | Configuration de Test | Couverture des Méthodes Ciblées | Couverture Globale Classe (446 lignes) | Score Mutation sur Méthodes Ciblées | Mutants Tués / Mutants Ciblés |
 | :--- | :---: | :---: | :---: | :---: |
 | **1. Tests Originaux Tika (`XMLReaderUtilsTest`)** | 45 % | 38 % (170/446) | 36 % | 8 / 22 |
-| **2. Tests Générés seuls (ChatUniTest)** | 78 % | 43 % (192/446) | 64 % | 14 / 22 |
-| **3. Tests Manuels seuls (Mocks + Réflexion)** | 84 % | 43 % (193/446) | 77 % | 17 / 22 |
+| **2. Tests Générés seuls (ChatUniTest - 4 tests)** | 78 % | 43 % (192/446) | 64 % | 14 / 22 |
+| **3. Tests Manuels seuls (Mocks + Réflexion - 3 tests)** | 84 % | 43 % (193/446) | 77 % | 17 / 22 |
 | **4. Suite Complète Combinée** | **94 %** | **45 % (202/446)** | **86 %** | **19 / 22** |
 
-#### C. Bilan Global Consolidé
-| Suite de Tests Exécutée | Tests Exécutés | Statut Build | Couverture Lignes (Périmètre Cible) | Mutation Score PIT (Périmètre Cible) | Force des Tests |
+#### C. Bilan Global Consolidé sur le Périmètre Cible
+*(Le périmètre cible regroupe les méthodes directement étudiées : `clean`, `isSupported`, `getAttrValue`, `setPoolSize`, `getSAXParserFactory`)*
+
+| Suite de Tests Exécutée | Tests Exécutés | Statut Build | Couverture Lignes (Périmètre Cible) | Mutation Score PIT (Périmètre Cible) | Force des Tests (Test Strength) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Baseline Tika** | 6 | SUCCESS | 28 % | 23 % | 58 % |
-| **ChatUniTest seul (18 tests)** | 18 | SUCCESS | 78 % | 66 % | 79 % |
-| **Tests Manuels seuls (5 tests)** | 5 | SUCCESS | 81 % | 74 % | 88 % |
-| **Suite Complète (23 tests)** | **23** | **SUCCESS (0 fail)** | **86 %** | **83 %** | **93 %** |
+| **ChatUniTest seul** | 18 | SUCCESS | 78 % | 66 % | 79 % |
+| **Tests Manuels seuls** | 5 | SUCCESS | 81 % | 74 % | 88 % |
+| **Suite Complète (Manuels + LLM)** | **23** | **SUCCESS (0 fail)** | **86 %** | **83 %** | **93 %** |
 
 ---
 
 ## 5. Analyse Critique et Discussion
 
 ### 5.1 Pourquoi la couverture élevée de ChatUniTest ne suffit pas ?
-ChatUniTest augmente rapidement la couverture de lignes (+6 % par rapport à la baseline), mais son score de mutation progresse moins vite, du au **problème de l'oracle de test** :
-- Le LLM fait executer le code en instanciant les classes 
-- Pourtant, ses assertions verifient souvent l'etat  facon superficielle (ex. `assertNotNull(result)`), sans verifier les proprietes fonctionnelles profondes.
+ChatUniTest permet un gain de productivité immédiat en faisant bondir la couverture de lignes de 28 % à 78 % sur le périmètre cible. Cependant, son score de mutation progresse plus lentement (66 % contre 74 % pour les tests manuels seuls, malgré un volume 3,5 fois supérieur de tests). Cet écart s'explique par le **problème de l'oracle de test (*Test Oracle Problem*)** :
+- Le LLM parvient aisément à exécuter le code en instanciant les classes et en fournissant des paramètres standards.
+- Pourtant, ses assertions vérifient souvent l'état de façon superficielle (ex. `assertNotNull(result)`), sans valider les propriétés fonctionnelles profondes ni les invariants internes.
 
-De nombreux operateurs de mutation PIT (ex. `MathMutator`, `PrimitiveReturnsMutator`, `ConditionalsBoundaryMutator`) ont ainsi survécu aux tests générés par l'LLM.
+De nombreux opérateurs de mutation PIT (ex. `MathMutator`, `PrimitiveReturnsMutator`, `ConditionalsBoundaryMutator`) ont ainsi survécu aux tests générés par le LLM, et n'ont pu être éliminés que par des assertions manuelles ciblées.
 
 ### 5.2 Les Mutants Tués par les Tests Manuels
 - **Mutants de condition aux limites :** PIT modifie `i < length` en `i <= length`. Le test manuel avec Mockito a spécifié un index hors-limite strict retournant `null`, provoquant une défaillance dès que la borne est franchie.

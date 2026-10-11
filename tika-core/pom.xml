@@ -161,15 +161,12 @@
     <configuration>
       <targetClasses>
         <param>org.apache.tika.utils.XMLReaderUtils</param>
-        <param>org.apache.tika.utils.CharsetUtils</param>
         <param>org.apache.tika.io.EndianUtils</param>
       </targetClasses>
       <targetTests>
         <param>org.apache.tika.utils.XMLReaderUtilsTest</param>
         <param>org.apache.tika.utils.XMLReaderUtilsGetAttrValueTest</param>
         <param>org.apache.tika.utils.XMLReaderUtilsSetPoolSizeTest</param>
-        <param>org.apache.tika.utils.CharsetUtilsTest</param>
-        <param>org.apache.tika.utils.CharsetUtilsManualTest</param>
         <param>org.apache.tika.utils.generated.*</param>
         <param>org.apache.tika.io.EndianUtilsTest</param>
         <param>org.apache.tika.io.EndianUtilsManualTest</param>

@@ -27,28 +27,23 @@ Cas d'étude : Apache Tika, module tika-core.
 
 ## 1. Classes choisies
 
-Nous avons choisi deux classes du paquet org.apache.tika.utils qui ont déjà des tests dans Tika, mais qui ne sont pas couvertes à 100 % :
+Nous avons choisi la classe XMLReaderUtils du paquet org.apache.tika.utils, qui a déjà des tests dans Tika, mais qui n'est pas couverte à 100 % :
 
 Couverture de départ, mesurée par JaCoCo avec toute la suite de tests originale de tika-core :
 
 | Classe | Tests dédiés existants | Instructions | Branches | Lignes |
 | :--- | :--- | :---: | :---: | :---: |
 | XMLReaderUtils | XMLReaderUtilsTest | 42 % | 33 % | 48 % (214/446) |
-| CharsetUtils | CharsetUtilsTest | 83 % | 78 % | 81 % (66/81) |
 
-Dans ces classes, nous avons ciblé les méthodes suivantes. Le tableau donne leur état avec les tests dédiés originaux (CharsetUtilsTest et XMLReaderUtilsTest), qui sont aussi ceux utilisés pour l'analyse de mutation de départ :
+Dans cette classe, nous avons ciblé les méthodes suivantes. Le tableau donne leur état avec le test dédié original (XMLReaderUtilsTest), qui est aussi celui utilisé pour l'analyse de mutation de départ :
 
 | Méthode | Lignes couvertes | Mutants | Tués | Survivants | Non couverts |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | XMLReaderUtils.getAttrValue | 0/4 | 5 | 0 | 0 | 5 |
 | XMLReaderUtils.setPoolSize | 26/29 | 19 | 0 | 18 | 1 |
 | XMLReaderUtils.getSAXParserFactory | 12/13 | 8 | 0 | 8 | 0 |
-| CharsetUtils.clean | 3/3 | 2 | 2 | 0 | 0 |
-| CharsetUtils.isSupported | 6/9 | 8 | 5 | 0 | 3 |
 
-Pour XMLReaderUtils : getAttrValue n'est jamais exécutée, et setPoolSize et getSAXParserFactory sont exécutées sans qu'aucune assertion ne vérifie leur effet. Aucun des 32 mutants n'est tué, alors que 83 % des lignes de ces trois méthodes sont couvertes (38/46).
-
-Pour CharsetUtils, la classe n'est pas couverte à 100 %, mais les tests existants tuent déjà tous les mutants atteignables de clean et isSupported. Les 3 mutants non couverts sont dans une branche qui n'est exécutée que si la bibliothèque ICU4J est présente, ce qui n'est pas le cas dans les tests de tika-core. Nous l'avons gardée pour comparer lors de notre analyse, mais elle n'avait pas de mutant vivant à tuer.
+getAttrValue n'est jamais exécutée, et setPoolSize et getSAXParserFactory sont exécutées sans qu'aucune assertion ne vérifie leur effet. Aucun des 32 mutants n'est tué, alors que 83 % des lignes de ces trois méthodes sont couvertes (38/46).
 
 ## 2. Génération des tests avec ChatUniTest
 
@@ -80,14 +75,9 @@ mvn chatunitest:method "-DselectMethod=org.apache.tika.utils.XMLReaderUtils#setP
 
 ### Déroulement
 
-- Premiers essais sur toute la classe CharsetUtils : toutes les tentatives ont échoué (erreurs de compilation, puis d'exécution au second essai), sans aucun test utilisable.
-
-- XMLReaderUtils, méthode par méthode :
-  - getAttrValue : le premier test (35_0) ne compilait pas après 3 rondes ; le second (35_1) a été réparé automatiquement par ChatUniTest à la ronde suivante.
-  - setPoolSize : avec maxPromptTokens = 4096, la génération était abandonnée (« Exceed max prompt tokens »), car XMLReaderUtils fait plus de 1000 lignes. Avec 8192, le test a été généré et exécuté avec succès dès la première ronde.
-  - getSAXParserFactory : un premier test ne compilait pas, le second a compilé et passé dès la première ronde.
-
-- CharsetUtils (clean et isSupported) : générés dans une seconde série d'exécutions, avec 8192 tokens.
+- getAttrValue : le premier test (35_0) ne compilait pas après 3 rondes ; le second (35_1) a été réparé automatiquement par ChatUniTest à la ronde suivante.
+- setPoolSize : avec maxPromptTokens = 4096, la génération était abandonnée (« Exceed max prompt tokens »), car XMLReaderUtils fait plus de 1000 lignes. Avec 8192, le test a été généré et exécuté avec succès dès la première ronde.
+- getSAXParserFactory : un premier test ne compilait pas, le second a compilé et passé dès la première ronde.
 
 ### Où sont les tests générés
 
@@ -96,8 +86,6 @@ mvn chatunitest:method "-DselectMethod=org.apache.tika.utils.XMLReaderUtils#setP
 
 | Fichier | Méthode testée | Nombre de tests |
 | :--- | :--- | :---: |
-| CharsetUtils_clean_36_0_Test | clean | 9 |
-| CharsetUtils_isSupported_12_0_Test | isSupported | 5 |
 | XMLReaderUtils_getAttrValue_35_1_Test | getAttrValue | 2 |
 | XMLReaderUtils_getSAXParserFactory_3_1_Test | getSAXParserFactory | 1 |
 | XMLReaderUtils_setPoolSize_32_0_Test | setPoolSize | 1 |
@@ -106,13 +94,12 @@ mvn chatunitest:method "-DselectMethod=org.apache.tika.utils.XMLReaderUtils#setP
 
 Les tests retenus compilaient et s'exécutaient déjà dans la boucle de ChatUniTest. Pour les intégrer au projet, nous avons fait les modifications suivantes :
 
-- Pour les 5 fichiers, une adaptation de forme : déplacement dans le paquet generated, ajout de l'en-tête de licence Apache et remplacement des imports génériques (plus de 40 imports inutiles copiés de la classe testée) par les imports nécessaires (règles du build de Tika).
+- Pour les 3 fichiers, une adaptation de forme : déplacement dans le paquet generated, ajout de l'en-tête de licence Apache et remplacement des imports génériques (plus de 40 imports inutiles copiés de la classe testée) par les imports nécessaires (règles du build de Tika).
 - Pour setPoolSize, retrait de l'annotation @ExtendWith(MockitoExtension.class), car le test n'utilise aucun mock.
-- Une seule correction de fond : dans CharsetUtils_clean_36_0_Test, le LLM affirmait que clean("iso 8859-1") renvoie "ISO-8859-1". En réalité, la méthode renvoie null pour cette entrée, et le test échouait. Nous avons remplacé l'entrée par "8859-1", qui donne bien "ISO-8859-1".
 
 ### Combien de corrections ont été nécessaires ?
 
-Aucune correction pour les tests de XMLReaderUtils, et une correction d'oracle pour CharsetUtils.
+Aucune correction de fond : les assertions des tests générés n'ont pas été modifiées.
 
 ## 3. Comparaison des oracles : IA et tests écrits à la main
 
@@ -126,16 +113,14 @@ Nous évaluons chaque oracle selon trois critères :
 | setPoolSize | assertEquals(5, getPoolSize()) : vérifie un champ affecté à la fin de la méthode. | Taille réelle des deux pools internes (lus par réflexion) après setPoolSize(0) et setPoolSize(3). | IA triviale et peu pertinente : elle ne regarde pas les pools, qui sont le vrai effet de la méthode. Main pertinente et spécifique. |
 | getAttrValue | Valeur exacte "value" pour un attribut en position 0, et null quand il n'y a aucun attribut. | null attendu quand l'attribut recherché est placé juste après la limite getLength(). | IA spécifique mais incomplète : elle ne teste que des cas simples. Main ciblée sur la borne de la boucle. |
 | getSAXParserFactory | Valeur attendue de chacune des 7 options de la fabrique (espaces de noms, validation, sécurité, entités externes, DTD). | Aucun test manuel. | IA pertinente et spécifique : c'est son meilleur test. |
-| clean | Nom exact attendu ("windows-1252", "ISO-8859-1", null…) pour 9 entrées variées. | Nom exact attendu pour des entrées avec du texte en trop, et null pour des entrées invalides. | Les deux sont spécifiques. Mais l'IA a produit un oracle faux : clean("iso 8859-1") renvoie null, pas "ISO-8859-1". |
-| isSupported | true ou false attendu pour des noms valides, null, vide, invalides, et en changeant la casse. | Aucun test manuel. | IA pertinente et spécifique. |
 
 Conséquence sur les mutants (section 4) : pour setPoolSize, l'oracle trivial de l'IA ne tue aucun mutant par son assertion. Les 6 mutants détectés le sont parce que la méthode plante ou boucle à l'infini. Les oracles écrits à la main en détectent 16 sur 19.
 
-En résumé, l'IA écrit des oracles pertinents et spécifiques quand le résultat est une valeur de retour visible (getSAXParserFactory, clean, isSupported). Elle tombe dans la vérification triviale quand l'effet de la méthode est caché dans l'état interne (setPoolSize). Elle peut aussi deviner un résultat faux (clean). Les tests écrits à la main compensent en visant précisément les effets internes et les valeurs limites.
+En résumé, l'IA écrit des oracles pertinents et spécifiques quand le résultat est une valeur de retour visible (getSAXParserFactory). Elle tombe dans la vérification triviale quand l'effet de la méthode est caché dans l'état interne (setPoolSize). Les tests écrits à la main compensent en visant précisément les effets internes et les valeurs limites.
 
 ## 4. Analyse de mutation avec PIT
 
-PIT 1.20.0 (avec pitest-junit5-plugin 1.2.2) est ajouté dans tika-core/pom.xml. La configuration cible CharsetUtils et XMLReaderUtils, avec les tests originaux, nos tests manuels et le paquet generated. Commande :
+PIT 1.20.0 (avec pitest-junit5-plugin 1.2.2) est ajouté dans tika-core/pom.xml. La configuration cible XMLReaderUtils, avec les tests originaux, nos tests manuels et le paquet generated. Commande :
 
 ```
 ./mvnw -pl tika-core test-compile org.pitest:pitest-maven:mutationCoverage
@@ -143,11 +128,11 @@ PIT 1.20.0 (avec pitest-junit5-plugin 1.2.2) est ajouté dans tika-core/pom.xml.
 
 Résultats sur les méthodes ciblées. PIT compte les mutants en timeout comme détectés :
 
-| Suite de tests | XMLReaderUtils (32 mutants) | CharsetUtils (10 mutants) |
-| :--- | :---: | :---: |
-| Tests originaux | 0/32 (0 %) | 7/10 (70 %) |
-| Tests originaux + générés | 16/32 (50 %) | 7/10 (70 %) |
-| Tests originaux + générés + manuels | 26/32 (81 %) | 7/10 (70 %) |
+| Suite de tests | XMLReaderUtils (32 mutants) |
+| :--- | :---: |
+| Tests originaux | 0/32 (0 %) |
+| Tests originaux + générés | 16/32 (50 %) |
+| Tests originaux + générés + manuels | 26/32 (81 %) |
 
 Par méthode, pour XMLReaderUtils :
 
@@ -157,7 +142,7 @@ Par méthode, pour XMLReaderUtils :
 | setPoolSize | 0/19 | 6/19 | 16/19 |
 | getSAXParserFactory | 0/8 | 6/8 | 5/8 |
 
-Les tests générés ne détectent donc pas tous les mutants : 16 mutants sur 32 survivent dans XMLReaderUtils. Pour CharsetUtils, ils n'apportent rien de plus que les tests originaux. Pour getSAXParserFactory, le score baisse de 6/8 à 5/8 en ajoutant les tests manuels, ce qui peut surprendre. L'écart vient du mutant de la ligne 236 : PIT le classe en timeout avec les tests originaux et générés, puis survivant avec la suite complète. Ce résultat se reproduit à chaque exécution. Comme ce mutant est équivalent (voir section 7), le timeout n'est pas une vraie détection : c'est un dépassement de délai, sans lien avec une assertion.
+Les tests générés ne détectent donc pas tous les mutants : 16 mutants sur 32 survivent dans XMLReaderUtils. Pour getSAXParserFactory, le score baisse de 6/8 à 5/8 en ajoutant les tests manuels, ce qui peut surprendre. L'écart vient du mutant de la ligne 236 : PIT le classe en timeout avec les tests originaux et générés, puis survivant avec la suite complète. Ce résultat se reproduit à chaque exécution. Comme ce mutant est équivalent (voir section 7), le timeout n'est pas une vraie détection : c'est un dépassement de délai, sans lien avec une assertion.
 
 ## 5. Mutants détectés par les tests générés, et pourquoi
 
@@ -186,13 +171,9 @@ Aucun mutant n'est tué grâce à l'assertion sur getPoolSize(). Ils sont tous t
 
 Les 13 autres mutants survivent : vidage des pools (clear), conditions poolSize > 0, bornes des boucles, etc. Le test ne regarde jamais le contenu des pools.
 
-### CharsetUtils (7/10)
-
-Les tests générés tuent les mêmes 7 mutants que les tests originaux. Par exemple, testCleanWithEmptyString tue le retour "" de la ligne 133 parce qu'il attend null, et testIsSupportedWithNull tue le retour true de la ligne 115. Les 3 autres ne sont pas couverts (branche ICU4J).
-
 ## 6. Tests ajoutés manuellement
 
-Fichiers : CharsetUtilsManualTest, XMLReaderUtilsGetAttrValueTest et XMLReaderUtilsSetPoolSizeTest, dans tika-core/src/test/java/org/apache/tika/utils/.
+Fichiers : XMLReaderUtilsGetAttrValueTest et XMLReaderUtilsSetPoolSizeTest, dans tika-core/src/test/java/org/apache/tika/utils/.
 
 ### XMLReaderUtilsGetAttrValueTest.testDoesNotReadPastLength
 
@@ -217,31 +198,23 @@ Fichiers : CharsetUtilsManualTest, XMLReaderUtilsGetAttrValueTest et XMLReaderUt
 
 Un @AfterEach remet la taille par défaut après chaque test, puisque les pools sont statiques et partagés par les autres tests.
 
-### CharsetUtilsManualTest
-
-- testCleanWithSpecialPrefixesAndCruft. Intention : clean doit retirer ce qui suit le nom de l'encodage. Données : "UTF-8>" (reste d'une balise HTML), "iso-8859-1; charset=something" (paramètre MIME) et "win-1252, other" (alias suivi d'une liste). Oracle : le nom canonique Java de l'encodage, soit "UTF-8", "ISO-8859-1" et "windows-1252".
-- testCleanWithUnsupportedOrInvalidPattern. Intention : une entrée inutilisable doit donner null sans exception. Données : une chaîne faite uniquement de séparateurs, et un nom d'encodage inexistant. Oracle : clean renvoie null quand l'encodage n'est pas reconnu (bloc catch de la méthode).
-
-Ces deux tests tuent les 2 mutants de clean, mais ceux-ci étaient déjà tués par les tests originaux (voir section 1).
-
 ## 7. Mutants restants
 
-Avec toutes les suites de tests, il reste 6 mutants survivants dans XMLReaderUtils et 3 mutants non couverts dans CharsetUtils :
+Avec toutes les suites de tests, il reste 6 mutants survivants dans XMLReaderUtils :
 
 - getSAXParserFactory, lignes 230, 231 et 236 : ces mutants suppriment setValidating(false), l'activation du traitement sécurisé et la désactivation de load-dtd-grammar. Sur la JVM utilisée, ces options ont déjà ces valeurs par défaut (nous l'avons vérifié avec SAXParserFactory.newInstance()). Ces mutants sont équivalents.
 - setPoolSize, lignes 974 et 993 (i < poolSize remplacé par i <= poolSize) : l'élément en trop est refusé par offer() sur une ArrayBlockingQueue pleine, et le refus est ignoré. Le comportement est identique : mutants équivalents.
 - setPoolSize, ligne 968 (suppression de parser.reset()) : les anciens parsers sont jetés juste après. L'effet n'est pas observable sans inspecter l'état interne de chaque parser.
-- CharsetUtils.isSupported, lignes 107, 108 et 118 : branche ICU4J et bloc catch générique, inatteignables sans ICU4J dans le classpath de test.
 
 ## 8. Exécution
 
 Tous les tests passent en local :
 
 ```
-./mvnw -pl tika-core test -Dtest="CharsetUtilsTest,CharsetUtilsManualTest,XMLReaderUtils*Test,*_Test"
+./mvnw -pl tika-core test -Dtest="XMLReaderUtils*Test"
 ```
 
-Résultat : 33 tests, 0 échec. Les nouveaux tests sont exécutés par le workflow GitHub Actions « main jdk17 build » du dépôt, déclenché à chaque push sur main.
+Résultat : 13 tests, 0 échec
 
 ## 9. Déclaration d'utilisation de l'intelligence artificielle générative
 

@@ -27,28 +27,31 @@ Cas d'étude : Apache Tika, module tika-core.
 
 ## 1. Classes choisies
 
-Nous avons choisi deux classes du module `tika-core` qui ont déjà des tests dans Tika, mais qui ne sont pas couvertes à 100 % et possèdent un réservoir significatif de mutants vivants non détectés :
+Nous avons choisi deux classes de tika-core qui ont déjà des tests dans Tika, mais qui ne sont pas couvertes à 100 % : XMLReaderUtils (paquet org.apache.tika.utils) et EndianUtils (paquet org.apache.tika.io).
 
 Couverture de départ, mesurée par JaCoCo avec toute la suite de tests originale de tika-core :
 
 | Classe | Tests dédiés existants | Instructions | Branches | Lignes |
 | :--- | :--- | :---: | :---: | :---: |
 | XMLReaderUtils | XMLReaderUtilsTest | 42 % | 33 % | 48 % (214/446) |
-| EndianUtils | EndianUtilsTest | 22 % | 18 % | 23 % (30/128) |
+| EndianUtils | EndianUtilsTest | 23 % | 35 % | 25 % (32/126) |
 
-Dans ces classes, nous avons ciblé les méthodes suivantes. Le tableau donne leur état avec les tests dédiés originaux (`XMLReaderUtilsTest` et `EndianUtilsTest`), qui sont aussi ceux utilisés pour l'analyse de mutation de départ :
+Dans ces classes, nous avons ciblé les méthodes suivantes. Le tableau donne leur état avec les tests dédiés originaux (XMLReaderUtilsTest et EndianUtilsTest), qui sont aussi ceux utilisés pour l'analyse de mutation de départ :
 
 | Méthode | Lignes couvertes | Mutants | Tués | Survivants | Non couverts |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | XMLReaderUtils.getAttrValue | 0/4 | 5 | 0 | 0 | 5 |
 | XMLReaderUtils.setPoolSize | 26/29 | 19 | 0 | 18 | 1 |
 | XMLReaderUtils.getSAXParserFactory | 12/13 | 8 | 0 | 8 | 0 |
-| EndianUtils.getUShortLE | 0/4 | 6 | 0 | 0 | 6 |
-| EndianUtils.getUShortBE | 0/4 | 6 | 0 | 0 | 6 |
-| EndianUtils.readIntLE | 0/9 | 10 | 0 | 0 | 10 |
+| EndianUtils.getUShortLE | 0/4 | 7 | 0 | 0 | 7 |
+| EndianUtils.getUShortBE | 0/4 | 7 | 0 | 0 | 7 |
+| EndianUtils.readIntLE | 0/7 | 12 | 0 | 0 | 12 |
 
-- **Pour `XMLReaderUtils` :** `getAttrValue` n'est jamais exécutée, et `setPoolSize` et `getSAXParserFactory` sont exécutées sans qu'aucune assertion ne vérifie leur effet. Aucun des 32 mutants n'est tué, alors que 83 % des lignes de ces trois méthodes sont couvertes (38/46).
-- **Pour `EndianUtils` :** la suite de test originale `EndianUtilsTest` ne teste que 4 méthodes particulières (`readUE7`, `readUIntLE`, `readUIntBE`, `readIntME`). Les méthodes `getUShortLE`, `getUShortBE` et `readIntLE` ne sont pas du tout exécutées par les tests d'origine. Les 22 mutants générés sur ces trois méthodes ne sont donc pas couverts (0 % tué au départ), ce qui en fait un cas d'étude optimal pour la génération de tests IA et l'analyse de mutation.
+Pour getUShortLE et getUShortBE, les chiffres regroupent les deux versions de chaque méthode : celle qui prend un décalage (offset) et celle qui lit au début du tableau.
+
+Pour XMLReaderUtils : getAttrValue n'est jamais exécutée, et setPoolSize et getSAXParserFactory sont exécutées sans qu'aucune assertion ne vérifie leur effet. Aucun des 32 mutants n'est tué, alors que 83 % des lignes de ces trois méthodes sont couvertes (38/46).
+
+Pour EndianUtils : EndianUtilsTest ne teste que readUE7, readUIntLE, readUIntBE et readIntME. Les trois méthodes ciblées ne sont jamais exécutées, ni par EndianUtilsTest ni par le reste de la suite de tika-core. Aucun de leurs 26 mutants n'est donc couvert au départ.
 
 ## 2. Génération des tests avec ChatUniTest
 
@@ -74,30 +77,20 @@ ChatUniTest est ajouté comme plugin Maven dans tika-core/pom.xml. Il utilise le
 
 Commande utilisée dans tika-core (une méthode à la fois) :
 
-```bash
+```
 mvn chatunitest:method "-DselectMethod=org.apache.tika.utils.XMLReaderUtils#setPoolSize"
 ```
 
 ### Déroulement
 
-- **XMLReaderUtils, méthode par méthode :**
-  - `getAttrValue` : le premier test (35_0) ne compilait pas après 3 rondes ; le second (35_1) a été réparé automatiquement par ChatUniTest à la ronde suivante.
-  - `setPoolSize` : avec maxPromptTokens = 4096, la génération était abandonnée (« Exceed max prompt tokens »), car XMLReaderUtils fait plus de 1000 lignes. Avec 8192, le test a été généré et exécuté avec succès dès la première ronde.
-  - `getSAXParserFactory` : un premier test ne compilait pas, le second a compilé et passé dès la première ronde.
-
-- **EndianUtils, méthode par méthode :**
-  - `getUShortLE` : généré en une seule ronde sans erreur de compilation. Les entrées sont des tableaux de bytes simples sans dépendance externe à mocker.
-  - `getUShortBE` : généré et exécuté dès la première ronde, complétant les cas avec et sans décalage (`offset`).
-  - `readIntLE` : généré avec gestion du flux standard `ByteArrayInputStream` et du cas d'exception `BufferUnderrunException`.
+- getAttrValue : le premier test (35_0) ne compilait pas après 3 rondes ; le second (35_1) a été réparé automatiquement par ChatUniTest à la ronde suivante.
+- setPoolSize : avec maxPromptTokens = 4096, la génération était abandonnée (« Exceed max prompt tokens »), car XMLReaderUtils fait plus de 1000 lignes. Avec 8192, le test a été généré et exécuté avec succès dès la première ronde.
+- getSAXParserFactory : un premier test ne compilait pas, le second a compilé et passé dès la première ronde.
 
 ### Où sont les tests générés
 
-- Tests bruts produits par ChatUniTest :
-  - `tika-core/chatunitest-tests/org/apache/tika/utils/`
-  - `tika-core/chatunitest-tests/org/apache/tika/io/`
-- Tests intégrés au projet :
-  - `tika-core/src/test/java/org/apache/tika/utils/generated/`
-  - `tika-core/src/test/java/org/apache/tika/io/generated/`
+- Tests bruts produits par ChatUniTest : tika-core/chatunitest-tests/org/apache/tika/utils/
+- Tests intégrés au projet : tika-core/src/test/java/org/apache/tika/utils/generated/ et tika-core/src/test/java/org/apache/tika/io/generated/
 
 | Fichier | Méthode testée | Nombre de tests |
 | :--- | :--- | :---: |
@@ -112,13 +105,12 @@ mvn chatunitest:method "-DselectMethod=org.apache.tika.utils.XMLReaderUtils#setP
 
 Les tests retenus compilaient et s'exécutaient déjà dans la boucle de ChatUniTest. Pour les intégrer au projet, nous avons fait les modifications suivantes :
 
-- Pour l'ensemble des fichiers, une adaptation de forme : déplacement dans les paquets `generated`, ajout de l'en-tête de licence Apache et nettoyage des imports superflus (règles strictes du build de Tika).
-- Pour `setPoolSize`, retrait de l'annotation `@ExtendWith(MockitoExtension.class)`, car le test n'utilise aucun mock.
-- Pour les tests d'EndianUtils, aucune retouche d'oracle n'a été nécessaire : les calculs arithmétiques attendus ont été exactement déduits par le LLM.
+- Pour les 3 fichiers, une adaptation de forme : déplacement dans le paquet generated, ajout de l'en-tête de licence Apache et remplacement des imports génériques (plus de 40 imports inutiles copiés de la classe testée) par les imports nécessaires (règles du build de Tika).
+- Pour setPoolSize, retrait de l'annotation @ExtendWith(MockitoExtension.class), car le test n'utilise aucun mock.
 
 ### Combien de corrections ont été nécessaires ?
 
-Aucune correction de logique pour les tests de `XMLReaderUtils` et `EndianUtils`. Seules des adaptations de packaging et de conformité aux règles Checkstyle de Tika ont été appliquées.
+Aucune correction de fond : les assertions des tests générés n'ont pas été modifiées.
 
 ## 3. Comparaison des oracles : IA et tests écrits à la main
 
@@ -129,47 +121,48 @@ Nous évaluons chaque oracle selon trois critères :
 
 | Méthode | Oracle de l'IA | Oracle écrit à la main | Verdict |
 | :--- | :--- | :--- | :--- |
-| setPoolSize | `assertEquals(5, getPoolSize())` : vérifie un champ affecté à la fin de la méthode. | Taille réelle des deux pools internes (lus par réflexion) après `setPoolSize(0)` et `setPoolSize(3)`. | IA triviale et peu pertinente : elle ne regarde pas les pools, qui sont le vrai effet de la méthode. Main pertinente et spécifique. |
-| getAttrValue | Valeur exacte "value" pour un attribut en position 0, et null quand il n'y a aucun attribut. | null attendu quand l'attribut recherché est placé juste après la limite `getLength()`. | IA spécifique mais incomplète : elle ne teste que des cas simples. Main ciblée sur la borne de la boucle. |
+| setPoolSize | assertEquals(5, getPoolSize()) : vérifie un champ affecté à la fin de la méthode. | Taille réelle des deux pools internes (lus par réflexion) après setPoolSize(0) et setPoolSize(3). | IA triviale et peu pertinente : elle ne regarde pas les pools, qui sont le vrai effet de la méthode. Main pertinente et spécifique. |
+| getAttrValue | Valeur exacte "value" pour un attribut en position 0, et null quand il n'y a aucun attribut. | null attendu quand l'attribut recherché est placé juste après la limite getLength(). | IA spécifique mais incomplète : elle ne teste que des cas simples. Main ciblée sur la borne de la boucle. |
 | getSAXParserFactory | Valeur attendue de chacune des 7 options de la fabrique (espaces de noms, validation, sécurité, entités externes, DTD). | Aucun test manuel. | IA pertinente et spécifique : c'est son meilleur test. |
-| getUShortLE | Valeurs positives `0x3412` et `0x0201` sur des octets `<= 0x7F`. | Valeur `0x0180` avec un octet négatif `0x80`, et borne maximale `65535` (`0xFFFF`). | IA spécifique sur les cas nominaux, mais incomplète : ignore le bit de signe Java. Main ciblée sur l'expansion de signe et le masque `& 0xFF`. |
-| getUShortBE | Valeurs positives `0x1234` et `0x0A0B` sur des octets `<= 0x7F`. | Valeur `0x0180` avec un octet négatif `0x80`, et borne maximale `65535` (`0xFFFF`). | IA spécifique sur cas nominaux. Main ciblée sur l'inversion d'octets et le masque `& 0xFF`. |
-| readIntLE | Valeur 32-bit `0x12345678` et `assertThrows(BufferUnderrunException.class)`. | Lecture avec octet de poids fort négatif (`0x80`) donnant `-2147483393` (`0x800000FF`). | Les deux sont pertinents et spécifiques ; le test manuel cible les valeurs de contournement de buffer. |
+| getUShortLE et getUShortBE | Valeur exacte (0x3412, 0x0201 en LE ; 0x1234, 0x0A0B en BE) pour deux octets lus au début du tableau ou après un décalage. | Valeur exacte pour un octet négatif (0x80 donne 0x0180) et pour 0xFFFF (65535), et lecture avec la version sans décalage. | IA pertinente et spécifique : l'ordre des octets est vérifié avec des valeurs précises. Elle ignore toutefois la version sans décalage de chaque méthode. |
+| readIntLE | Valeur exacte 0x12345678, et BufferUnderrunException attendue quand le flux ne fournit que 3 octets. | Valeur exacte pour un octet de poids fort négatif (0x800000FF), et 0 attendu pour quatre octets nuls. | IA pertinente et spécifique, mais elle ne teste pas la valeur limite 0, qui distingue une lecture complète d'un flux trop court. |
 
-Conséquence sur les mutants (section 4) : 
-- Pour `setPoolSize`, l'oracle trivial de l'IA ne tue aucun mutant par son assertion propre (seulement par crash/timeout). Les oracles manuels en éliminent 16 sur 19.
-- Pour `EndianUtils`, l'IA élimine tous les mutants de décalage binaire (`<< 8`, `<< 16`) et d'inversion d'ordre d'octets, mais laisse survivre les mutations sur le masque de signe `& 0xFF` car ses données de test n'utilisent que des octets positifs. Les tests manuels éliminent ces mutants survivants restants.
+Conséquence sur les mutants (section 4) : pour setPoolSize, l'oracle trivial de l'IA ne tue aucun mutant par son assertion. Les 6 mutants détectés le sont parce que la méthode plante ou boucle à l'infini. Les oracles écrits à la main en détectent 16 sur 19. Pour EndianUtils, les oracles précis de l'IA tuent 21 des 26 mutants. Les oracles écrits à la main n'en ajoutent que 3, ceux de la version sans décalage et de la valeur limite 0.
+
+En résumé, l'IA écrit des oracles pertinents et spécifiques quand le résultat est une valeur de retour visible (getSAXParserFactory, EndianUtils). Elle tombe dans la vérification triviale quand l'effet de la méthode est caché dans l'état interne (setPoolSize). Elle oublie aussi les valeurs limites et les variantes d'une même méthode. Les tests écrits à la main compensent en visant précisément les effets internes et les valeurs limites.
 
 ## 4. Analyse de mutation avec PIT
 
-PIT 1.20.0 (avec pitest-junit5-plugin 1.2.2) est configuré dans `tika-core/pom.xml`. La configuration cible `XMLReaderUtils` et `EndianUtils`, avec les tests originaux, nos tests manuels et les paquets `generated`. Commande :
+PIT 1.20.0 (avec pitest-junit5-plugin 1.2.2) est ajouté dans tika-core/pom.xml. La configuration cible XMLReaderUtils et EndianUtils, avec les tests originaux, nos tests manuels et les paquets generated. Commande :
 
-```bash
+```
 ./mvnw -pl tika-core test-compile org.pitest:pitest-maven:mutationCoverage
 ```
 
 Résultats sur les méthodes ciblées. PIT compte les mutants en timeout comme détectés :
 
-| Suite de tests | XMLReaderUtils (32 mutants) | EndianUtils (22 mutants) | Total combiné (54 mutants) |
+| Suite de tests | XMLReaderUtils (32 mutants) | EndianUtils (26 mutants) | Total (58 mutants) |
 | :--- | :---: | :---: | :---: |
-| Tests originaux | 0/32 (0 %) | 0/22 (0 %) | 0/54 (0 %) |
-| Tests originaux + générés | 16/32 (50 %) | 16/22 (73 %) | 32/54 (59 %) |
-| Tests originaux + générés + manuels | 26/32 (81 %) | 22/22 (100 %) | 48/54 (89 %) |
+| Tests originaux | 0/32 (0 %) | 0/26 (0 %) | 0/58 (0 %) |
+| Tests originaux + générés | 16/32 (50 %) | 21/26 (81 %) | 37/58 (64 %) |
+| Tests originaux + générés + manuels | 26/32 (81 %) | 24/26 (92 %) | 50/58 (86 %) |
 
-Détail par méthode :
+Par méthode :
 
-| Classe & Méthode | Mutants | Tests originaux | + Générés (IA) | + Manuels (Final) |
-| :--- | :---: | :---: | :---: | :---: |
-| `XMLReaderUtils.getAttrValue` | 5 | 0/5 (0 %) | 4/5 (80 %) | 5/5 (100 %) |
-| `XMLReaderUtils.setPoolSize` | 19 | 0/19 (0 %) | 6/19 (32 %) | 16/19 (84 %) |
-| `XMLReaderUtils.getSAXParserFactory` | 8 | 0/8 (0 %) | 6/8 (75 %) | 5/8 (63 %) |
-| `EndianUtils.getUShortLE` | 6 | 0/6 (0 %) | 4/6 (67 %) | 6/6 (100 %) |
-| `EndianUtils.getUShortBE` | 6 | 0/6 (0 %) | 4/6 (67 %) | 6/6 (100 %) |
-| `EndianUtils.readIntLE` | 10 | 0/10 (0 %) | 8/10 (80 %) | 10/10 (100 %) |
+| Méthode | Originaux | + générés | + manuels |
+| :--- | :---: | :---: | :---: |
+| XMLReaderUtils.getAttrValue | 0/5 | 4/5 | 5/5 |
+| XMLReaderUtils.setPoolSize | 0/19 | 6/19 | 16/19 |
+| XMLReaderUtils.getSAXParserFactory | 0/8 | 6/8 | 5/8 |
+| EndianUtils.getUShortLE | 0/7 | 6/7 | 7/7 |
+| EndianUtils.getUShortBE | 0/7 | 6/7 | 7/7 |
+| EndianUtils.readIntLE | 0/12 | 9/12 | 10/12 |
+
+Les tests générés ne détectent donc pas tous les mutants : 16 mutants sur 32 survivent dans XMLReaderUtils, et 5 sur 26 dans EndianUtils. Pour getSAXParserFactory, le score baisse de 6/8 à 5/8 en ajoutant les tests manuels, ce qui peut surprendre. L'écart vient du mutant de la ligne 236 : PIT le classe en timeout avec les tests originaux et générés, puis survivant avec la suite complète. Ce résultat se reproduit à chaque exécution. Comme ce mutant est équivalent (voir section 7), le timeout n'est pas une vraie détection : c'est un dépassement de délai, sans lien avec une assertion.
 
 ## 5. Mutants détectés par les tests générés, et pourquoi
 
-### getAttrValue (4/5 détectés par l'IA)
+### getAttrValue (4/5)
 
 | Ligne | Mutation | Tué par | Pourquoi |
 | :---: | :--- | :--- | :--- |
@@ -178,110 +171,118 @@ Détail par méthode :
 | 1037 | retour remplacé par "" | testGetAttrValueNotFound | L'assertion attend null, pas une chaîne vide. |
 | 1032 | condition de boucle inversée (i >= length) | timeout | Avec 0 attribut, la boucle ne s'arrête plus. |
 
-*Survivant :* la borne de boucle (`i < length` remplacé par `i <= length`), car aucun test généré ne place d'attribut au-delà de `getLength()`.
+Survivant : la borne de boucle (i < length remplacé par i <= length), car aucun test ne place d'attribut au-delà de getLength().
 
-### getSAXParserFactory (6/8 détectés par l'IA)
+### getSAXParserFactory (6/8)
 
-Le test unique vérifie la valeur de chaque option de la fabrique. Il tue donc les mutants qui suppriment `setNamespaceAware(true)` (ligne 229) et les trois appels qui désactivent les entités externes et le chargement de DTD externes (lignes 232 à 234). Il tue aussi le mutant qui renvoie null (ligne 239), grâce à `assertNotNull`. La ligne 236 est classée en timeout.
+Le test unique vérifie la valeur de chaque option de la fabrique. Il tue donc les mutants qui suppriment setNamespaceAware(true) (ligne 229) et les trois appels qui désactivent les entités externes et le chargement de DTD externes (lignes 232 à 234). Il tue aussi le mutant qui renvoie null (ligne 239), grâce à assertNotNull. La ligne 236 est classée en timeout, mais ce n'est pas une vraie détection (voir section 7).
 
-### setPoolSize (6/19 détectés par l'IA)
+### setPoolSize (6/19)
 
-Aucun mutant n'est tué grâce à l'assertion sur `getPoolSize()`. Ils sont tous tués parce que la méthode plante ou ne se termine plus :
-- Ligne 954, condition `poolSize < 0` inversée : la méthode lance `IllegalArgumentException` pour la valeur 5.
-- Lignes 964 et 988, suppression de `lock()` : l'appel à `unlock()` qui suit lance `IllegalMonitorStateException`.
-- Lignes 974 et 993, `i++` remplacé par `i--` : la boucle de remplissage ne se termine plus (timeout).
-- Ligne 971, `poolSize > 0` remplacé par `poolSize >= 0` : classé en timeout.
+Aucun mutant n'est tué grâce à l'assertion sur getPoolSize(). Ils sont tous tués parce que la méthode plante ou ne se termine plus :
+- Ligne 954, condition poolSize < 0 inversée : la méthode lance IllegalArgumentException pour la valeur 5.
+- Lignes 964 et 988, suppression de lock() : l'appel à unlock() qui suit lance IllegalMonitorStateException.
+- Lignes 974 et 993, i++ remplacé par i-- : la boucle de remplissage ne se termine plus (timeout).
+- Ligne 971, poolSize > 0 remplacé par poolSize >= 0 : classé en timeout. Aucun test de cette suite n'appelle setPoolSize(0), donc ce n'est pas une vraie détection, comme pour la ligne 236 de getSAXParserFactory.
 
-Les 13 autres mutants survivent : vidage des pools (`clear`), conditions `poolSize > 0`, bornes des boucles, etc. Le test généré ne regarde jamais le contenu des pools.
+Les 13 autres mutants survivent : vidage des pools (clear), conditions poolSize > 0, bornes des boucles, etc. Le test ne regarde jamais le contenu des pools.
 
-### EndianUtils.getUShortLE (4/6 détectés par l'IA)
+### getUShortLE (6/7) et getUShortBE (6/7)
 
-- **Ligne 293, substitution de l'opération de décalage (`<< 8` altéré) :** Tué par `testGetUShortLEBasic` car le résultat n'est plus `0x3400 + 0x12`.
-- **Ligne 293, inversion des termes `b1` et `b0` :** Tué car `(0x12 << 8) + 0x34` donne `0x1234` au lieu de `0x3412`.
-- **Ligne 293, valeur de retour remplacée par 0 :** Tué immédiatement par l'assertion attendant `0x3412`.
-- **Ligne 292, altération de l'indice `offset + 1` :** Tué par `testGetUShortLEWithOffset` qui lit le mauvais octet.
-- *Survivants (2 mutants) :* La suppression du masquage `& 0xFF` sur `b0` et `b1` aux lignes 291 et 292. Comme les données du test IA ne comportent que des octets positifs (`0x12`, `0x34`), l'extension de signe ne se produit pas, et la mutation est indétectable avec ces données.
+Les deux méthodes ont la même structure (masque & 0xFF sur chaque octet, décalage << 8, addition) et les mêmes mutants. Le test testGetUShortLEWithOffset lit les octets 01 02 à partir du décalage 1 et attend exactement 0x0201. Chaque mutant change ce résultat :
 
-### EndianUtils.getUShortBE (4/6 détectés par l'IA)
+| Ligne (LE / BE) | Mutation | Résultat du mutant |
+| :---: | :--- | :--- |
+| 291 / 335 | & 0xFF remplacé par \| 0xFF sur le premier octet | 0x02FF : l'octet lu devient 0xFF. |
+| 292 / 336 | & 0xFF remplacé par \| 0xFF sur le second octet | 0xFF01. |
+| 292 / 336 | offset + 1 remplacé par offset - 1 | 0x0001 : le mauvais octet est lu (00 au lieu de 02). |
+| 293 / 337 | << 8 remplacé par >> 8 | 0x0001 : l'octet de poids fort est perdu. |
+| 293 / 337 | addition remplacée par soustraction | 0x01FF. |
+| 293 / 337 | retour remplacé par 0 | 0. |
 
-- **Ligne 337, altération du décalage (`b0 << 8`) et inversion :** Tués par `testGetUShortBEBasic` car l'ordre Big-Endian n'est plus respecté.
-- **Ligne 337, retour forcé à 0 :** Tué par l'assertion.
-- **Ligne 336, indice `offset + 1` altéré :** Tué par `testGetUShortBEWithOffset`.
-- *Survivants (2 mutants) :* Suppression de `& 0xFF` aux lignes 335 et 336 (mêmes raisons que ci-dessus).
+Le test testGetUShortBEWithOffset tue les mêmes mutants pour getUShortBE avec les octets 0A 0B. Non couvert : le retour remplacé par 0 dans la version sans décalage (ligne 280 pour LE, 324 pour BE), car aucun test généré ne l'appelle.
 
-### EndianUtils.readIntLE (8/10 détectés par l'IA)
+### readIntLE (9/12)
 
-- **Ligne 133, décalages `<< 24`, `<< 16`, `<< 8` :** Détectés par `testReadIntLESuccess`.
-- **Ligne 130, condition d'arrêt `(ch1 | ch2 | ch3 | ch4) < 0` :** Détectée par `testReadIntLEBufferUnderrun` qui attend la levée d'une `BufferUnderrunException`.
-- *Survivants (2 mutants) :* Remplacement de la condition `< 0` par `<= 0` et certaines mutations scalaires limites n'entraînant pas d'erreur sur des flux complets positifs.
+- testReadIntLESuccess attend exactement 0x12345678. Il tue les trois mutants qui remplacent un décalage << par >> et les trois qui remplacent une addition par une soustraction (ligne 133), le retour remplacé par 0, et la condition inversée de la ligne 130, qui lance BufferUnderrunException alors que les 4 octets sont présents.
+- testReadIntLEBufferUnderrun tue le mutant qui remplace par & le dernier | de la condition (ch1 | ch2 | ch3) & ch4 : avec 3 octets seulement, ch4 vaut -1, la condition devient positive et l'exception n'est plus lancée.
+
+Survivants (ligne 130) : la borne < 0 remplacée par <= 0, et les deux autres | remplacés par &. Ils sont analysés en sections 6 et 7.
 
 ## 6. Tests ajoutés manuellement
 
-Fichiers :
-- `tika-core/src/test/java/org/apache/tika/utils/XMLReaderUtilsGetAttrValueTest.java`
-- `tika-core/src/test/java/org/apache/tika/utils/XMLReaderUtilsSetPoolSizeTest.java`
-- `tika-core/src/test/java/org/apache/tika/io/EndianUtilsManualTest.java`
+Fichiers : XMLReaderUtilsGetAttrValueTest et XMLReaderUtilsSetPoolSizeTest, dans tika-core/src/test/java/org/apache/tika/utils/, et EndianUtilsManualTest, dans tika-core/src/test/java/org/apache/tika/io/.
 
 ### XMLReaderUtilsGetAttrValueTest.testDoesNotReadPastLength
 
-- **Intention :** Vérifier que `getAttrValue` ne lit que les `getLength()` premiers attributs.
-- **Données :** Un mock de `Attributes` avec `getLength() = 1`, l'attribut "other" à l'indice 0, et l'attribut recherché "target" (valeur "beyond") à l'indice 1 (hors limites).
-- **Oracle :** `null`.
-- **Mutants tués :** La borne de boucle (ligne 1032, `<` remplacé par `<=`).
+- Intention : vérifier que getAttrValue ne lit que les getLength() premiers attributs.
+- Données : un mock de Attributes avec getLength() = 1, l'attribut "other" à l'indice 0, et l'attribut recherché "target" (valeur "beyond") à l'indice 1, donc hors limites. C'est un piège : seule une boucle qui dépasse la limite peut le trouver.
+- Oracle : d'après la Javadoc, la méthode renvoie « attribute value with that local name or null if not found ». "target" ne fait pas partie des attributs déclarés, donc le résultat attendu est null.
+- Mutants tués : la borne de boucle (ligne 1032, < remplacé par <=), qui survivait aux tests générés.
 
 ### XMLReaderUtilsSetPoolSizeTest.testZeroPoolSizeEmptiesPools
 
-- **Intention :** Vérifier que `setPoolSize(0)` vide les deux pools internes.
-- **Données :** 0 (valeur frontière).
-- **Oracle :** Inspection par réflexion des champs privés `SAX_PARSERS` et `DOM_BUILDERS` pour valider une taille égale à 0.
-- **Mutants tués :** Suppression des deux appels à `clear()` (lignes 970 et 990), et bornes de conditions `poolSize < 0` et `poolSize > 0`.
+- Intention : vérifier que setPoolSize(0) vide les deux pools internes, de parsers SAX et de constructeurs DOM.
+- Données : 0 est la valeur limite entre le cas interdit (poolSize < 0, exception) et le remplissage des pools (poolSize > 0).
+- Oracle : la Javadoc indique que « if a value of 0 is passed in, no SAXParsers or DOMBuilders will be pooled ». Les champs SAX_PARSERS et DOM_BUILDERS étant privés, le test les lit par réflexion et vérifie que leur taille est 0.
+- Mutants tués : suppression des deux appels à clear() (lignes 970 et 990), et les bornes des conditions poolSize < 0 et poolSize > 0 (lignes 954 et 991).
 
 ### XMLReaderUtilsSetPoolSizeTest.testPoolsAreFilled
 
-- **Intention :** Vérifier que `setPoolSize(n)` remplit chaque pool avec exactement `n` éléments.
-- **Données :** 3.
-- **Oracle :** Les deux files doivent contenir exactement 3 éléments.
-- **Mutants tués :** Conditions des lignes 971, 974, 991 et 993 (boucles de remplissage).
+- Intention : vérifier que setPoolSize(n) remplit chaque pool avec exactement n éléments.
+- Données : 3, une petite valeur supérieure à 1, pour détecter une boucle qui en ajoute un de trop ou un de moins.
+- Oracle : la Javadoc indique que la méthode reconstruit le pool « from scratch », avec la taille demandée. Les deux files doivent donc contenir 3 éléments.
+- Mutants tués : les conditions inversées des lignes 971, 974, 991 et 993 (si poolSize > 0 et les boucles de remplissage).
 
-### EndianUtilsManualTest.testNegativeByteValuesAreUnsignedInGetUShortLE et testNegativeByteValuesAreUnsignedInGetUShortBE
+Un @AfterEach remet la taille par défaut après chaque test, puisque les pools sont statiques et partagés par les autres tests.
 
-- **Intention :** Éliminer les mutants survivants qui suppriment le masquage `& 0xFF`.
-- **Données :** L'octet négatif `(byte) 0x80` (-128 signé) combiné avec `(byte) 0x01`.
-- **Motivation des données :** En Java, le type primitif `byte` est signé. L'opération `(byte) 0x80` sans `& 0xFF` est promue en entier signé `0xFFFFFF80`. L'addition arithmétique `+` produit alors un nombre négatif erroné au lieu de `384` (`0x0180`).
-- **Oracle :** `384` (`0x0180`), conformément à la conversion non signée spécifiée.
-- **Mutants tués :** Suppression des masques `& 0xFF` (lignes 291, 292, 335, 336).
+### EndianUtilsManualTest.testGetUShortWithoutOffsetReadsFromStart
 
-### EndianUtilsManualTest.testMaxUShortValues et testReadIntLENegativeBytes
+- Intention : vérifier les versions sans décalage, getUShortLE(data) et getUShortBE(data), qu'aucun autre test n'appelle.
+- Données : les octets 34 12 99. Ils donnent une valeur différente selon l'ordre de lecture, et le troisième octet ne doit pas être lu.
+- Oracle : la Javadoc indique que ces versions lisent « from the beginning of a byte array ». On attend donc 0x1234 en LE et 0x3412 en BE.
+- Mutants tués : le retour remplacé par 0 des deux versions sans décalage (lignes 280 et 324), qui n'étaient pas couverts.
 
-- **Intention :** Valider les valeurs de bornes maximales (65535) et la lecture sans faux-positif de `BufferUnderrunException` sur des octets de poids fort négatifs dans `readIntLE`.
-- **Données :** Tableaux remplis de `(byte) 0xFF` et `0x80`.
-- **Oracle :** `65535` pour les shorts, et `0x800000FF` (-2147483393) pour l'entier 32-bit.
-- **Mutants tués :** Toutes les mutations de bornes restantes dans `readIntLE`.
+### EndianUtilsManualTest.testReadIntLEAllZeroBytes
+
+- Intention : vérifier qu'une lecture complète de quatre octets nuls n'est pas confondue avec un flux trop court.
+- Données : 00 00 00 00. C'est la valeur limite de la condition (ch1 | ch2 | ch3 | ch4) < 0 : le OU des octets vaut exactement 0.
+- Oracle : la Javadoc ne prévoit BufferUnderrunException que si « the stream cannot provide enough bytes ». Ici, les 4 octets sont présents, donc le résultat attendu est 0.
+- Mutants tués : la borne < 0 remplacée par <= 0 (ligne 130). Avec ce mutant, la méthode lance l'exception au lieu de renvoyer 0.
+
+### Autres tests de EndianUtilsManualTest
+
+Les quatre autres tests du fichier (testNegativeByteValuesAreUnsignedInGetUShortLE, testNegativeByteValuesAreUnsignedInGetUShortBE, testMaxUShortValues et testReadIntLENegativeBytes) vérifient la lecture d'octets négatifs (0x80, 0xFF) et la valeur maximale 65535. Ces cas sont pertinents en Java, où le type byte est signé. Ils ne tuent cependant aucun mutant de plus que les tests générés : PIT remplace le masque & 0xFF par | 0xFF au lieu de le supprimer, et les tests générés détectent déjà ce changement avec des octets positifs.
 
 ## 7. Mutants restants
 
-Avec l'ensemble des suites de tests, il ne reste que 6 mutants survivants dans `XMLReaderUtils` (et 0 dans les méthodes ciblées de `EndianUtils`) :
+Avec toutes les suites de tests, il reste 6 mutants survivants dans XMLReaderUtils et 2 dans EndianUtils :
 
-- **`getSAXParserFactory` (lignes 230, 231 et 236) :** Ces mutants suppriment `setValidating(false)`, l'activation du traitement sécurisé et la désactivation de `load-dtd-grammar`. Sur la JVM standard de test, ces options possèdent déjà ces valeurs par défaut. Ces mutants sont équivalents.
-- **`setPoolSize` (lignes 974 et 993, `i < poolSize` remplacé par `i <= poolSize`) :** L'élément en trop est refusé par `offer()` sur une `ArrayBlockingQueue` pleine, et le refus est ignoré. Le comportement observable reste strictement identique : mutants équivalents.
-- **`setPoolSize` (ligne 968, suppression de `parser.reset()`) :** Les anciens parsers sont jetés juste après. L'effet n'est pas observable sans inspecter l'état interne de chaque parser.
+- getSAXParserFactory, lignes 230, 231 et 236 : ces mutants suppriment setValidating(false), l'activation du traitement sécurisé et la désactivation de load-dtd-grammar. Sur la JVM utilisée, ces options ont déjà ces valeurs par défaut (nous l'avons vérifié avec SAXParserFactory.newInstance()). Ces mutants sont équivalents.
+- setPoolSize, lignes 974 et 993 (i < poolSize remplacé par i <= poolSize) : l'élément en trop est refusé par offer() sur une ArrayBlockingQueue pleine, et le refus est ignoré. Le comportement est identique : mutants équivalents.
+- setPoolSize, ligne 968 (suppression de parser.reset()) : les anciens parsers sont jetés juste après. L'effet n'est pas observable sans inspecter l'état interne de chaque parser.
+- EndianUtils.readIntLE, ligne 130 (un des deux premiers | de la condition (ch1 | ch2 | ch3 | ch4) < 0 remplacé par &) : quand un flux est épuisé, read() renvoie -1 à cet appel et à tous les suivants. Si ch1, ch2 ou ch3 vaut -1, ch4 vaut donc aussi -1. Comme ch4 reste combiné par un |, la condition reste négative et l'exception est lancée comme dans le code original. Ces deux mutants sont équivalents pour tout flux qui respecte le contrat de InputStream.
 
 ## 8. Exécution
 
-Tous les tests passent avec succès en local :
+Tous les tests passent en local :
 
-```bash
-./mvnw -pl tika-core test -Dtest="XMLReaderUtils*Test,EndianUtils*Test,*_Test"
+```
+./mvnw -pl tika-core test -Dtest="XMLReaderUtils*Test,EndianUtils*Test"
 ```
 
-Résultat : 35 tests, 0 échec. Les nouveaux tests sont exécutés automatiquement dans le workflow GitHub Actions « main jdk17 build » du dépôt à chaque push sur la branche `main`.
+Résultat : 29 tests, 0 échec
 
 ## 9. Déclaration d'utilisation de l'intelligence artificielle générative
 
-- **Outils d'intelligence artificielle :** Claude Opus 5.5 (Anthropic), consulté le 7 octobre 2026 ; qwen2.5-coder:7b, exécuté localement avec Ollama par ChatUniTest, entre le 29 septembre et le 10 octobre 2026 ;
-- **Génération de tests :** `qwen2.5-coder:7b` a été utilisé par ChatUniTest pour générer les suites de tests du paquet `generated` pour `XMLReaderUtils` et `EndianUtils`, conformément à l'énoncé ;
-- **Structure et analyse :** L'assistant a été utilisé pour organiser la structure du rapport conformément aux critères du cours IFT3913 et pour analyser en profondeur les causes techniques de survie des mutants (notamment les masques de bits signés et les mutants équivalents) ;
-- **Travail réalisé par le binôme :** La sélection rigoureuse des classes (`XMLReaderUtils` et `EndianUtils`), la configuration du pipeline Maven et des plugins PIT/ChatUniTest, l'écriture manuelle des tests de coin et la validation des oracles ;
-- **Confidentialité et sécurité :** Le code analysé provient du projet libre Apache Tika, qui est public. Les seuls renseignements personnels présents dans les fichiers consultés sont les noms et matricules des membres du binôme. Aucun renseignement personnel supplémentaire n'a été partagé.
+Outils d'intelligence artificielle : Claude Opus 5.5 (Anthropic), consulté le 7 octobre 2026 ; qwen2.5-coder:7b, exécuté localement avec Ollama par ChatUniTest, entre le 29 et le 30 septembre 2026 ;
 
-Paragraphe rédigé en conformité avec les directives de l'Université de Montréal : https://boite-outils.bib.umontreal.ca/trouver-evaluer/iag?p=5377614
+Génération de tests : qwen2.5-coder:7b a été utilisé par ChatUniTest pour générer les tests du paquet generated, comme le demande l'énoncé (section 2) ; 
+
+Claude a été utilisé pour proposer une structure du rapport qui suit les étapes et les critères d'évaluation de l'énoncé ; 
+
+Compréhension et approfondissement : Claude a été utilisé pour expliquer le fonctionnement des outils, notamment la configuration de PIT dans le pom, la différence entre mutants survivants, non couverts et en timeout, ainsi que la lecture des journaux de ChatUniTest; 
+
+Travail réalisé par le binôme : le choix des classes, l'exécution de ChatUniTest, l'écriture des tests manuels et la validation finale du rapport ; Confidentialité et sécurité : le code analysé provient du projet libre Apache Tika, qui est public. Les seuls renseignements personnels présents dans les fichiers consultés par l'outil sont les noms et matricules des membres du binôme, inscrits dans le rapport. Aucun autre renseignement personnel n'a été partagé.
+
+Paragraphe écrit en suivant la structure énoncée ici: https://boite-outils.bib.umontreal.ca/trouver-evaluer/iag?p=5377614

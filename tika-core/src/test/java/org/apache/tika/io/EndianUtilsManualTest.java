@@ -76,4 +76,27 @@ public class EndianUtilsManualTest {
         int val = EndianUtils.readIntLE(new ByteArrayInputStream(bytes));
         assertEquals(0x800000FF, val);
     }
+
+    /**
+     * Intention : Vérifier les versions sans décalage, qui lisent au début du tableau.
+     * Aucun autre test ne les appelle : leurs mutants n'étaient pas couverts.
+     * Des valeurs différentes en LE et en BE confirment l'ordre des octets.
+     */
+    @Test
+    public void testGetUShortWithoutOffsetReadsFromStart() {
+        byte[] data = new byte[]{(byte) 0x34, (byte) 0x12, (byte) 0x99};
+        assertEquals(0x1234, EndianUtils.getUShortLE(data));
+        assertEquals(0x3412, EndianUtils.getUShortBE(data));
+    }
+
+    /**
+     * Intention : Tuer le mutant de borne sur la condition '(ch1 | ch2 | ch3 | ch4) < 0' de readIntLE.
+     * Quatre octets nuls sont une lecture complète : la Javadoc ne prévoit l'exception que si le flux
+     * ne fournit pas assez d'octets. Le résultat attendu est 0, alors que '<= 0' lancerait l'exception.
+     */
+    @Test
+    public void testReadIntLEAllZeroBytes() throws Exception {
+        byte[] bytes = new byte[]{0x00, 0x00, 0x00, 0x00};
+        assertEquals(0, EndianUtils.readIntLE(new ByteArrayInputStream(bytes)));
+    }
 }

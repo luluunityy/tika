@@ -340,6 +340,8 @@ Claude a été utilisé pour proposer une structure du rapport qui suit les éta
 
 Compréhension et approfondissement : Claude a été utilisé pour expliquer le fonctionnement des outils, notamment la configuration de PIT dans le pom, la différence entre mutants survivants, non couverts et en timeout, ainsi que la lecture des logs de ChatUniTest et l'approfondissement des cas limites; 
 
+Révision et édition : Claude a été utilisé pour standardiser les commentaires des tests (commentaires ajoutés aux tests du paquet generated et Javadoc de EndianUtilsManualTest) ; 
+
 Analyse des données : le 12 octobre 2026, Claude (Claude Code) a relancé les tests, JaCoCo et PIT sur les trois suites de tests, a comparé les résultats aux chiffres du rapport et a corrigé les chiffres qui ne correspondaient pas (sections 1, 3, 4, 5 et 9), puis a ajouté les scores de mutation sur les classes entières et les commandes PIT de chaque configuration (section 4) ; 
 
 Travail réalisé par l'équipe : le choix des classes, l'exécution de ChatUniTest, l'écriture des tests manuels et la validation finale du rapport ; Confidentialité et sécurité : le code analysé provient du projet libre Apache Tika, qui est public. Les seuls renseignements personnels présents dans les fichiers consultés par l'outil sont les noms et matricules des membres du l'équipe, inscrits dans le rapport. Aucun autre renseignement personnel n'a été partagé.

@@ -324,6 +324,8 @@ Tous les tests passent en local :
 
 Résultat : 33 tests, 0 échec
 
+Le build global apparaît en échec (à cause de S3PipeIntegrationTest, un test d'intégration de Tika qui dépend de Docker et n'a aucun lien avec nos classes) alors que les nouveaux tests passent bien dans le workflow Actions main jdk17 build.
+
 ## 9. Conclusion
 
 En conclusion, on voit que la couverture de code n'est pas un outil qui sert à juger les tests, mais un outil quantitatif. La couverture indique quel code est exécuté, pas s'il est vérifié. Au départ, 77 % (34/44) des lignes de setPoolSize, getAttrValue et getSAXParserFactory étaient couvertes, mais aucun de leurs 30 mutants n'était tué. 

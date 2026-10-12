@@ -18,24 +18,25 @@ package org.apache.tika.io.generated;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.lang.reflect.Method;
+
 import org.junit.jupiter.api.Test;
 
 import org.apache.tika.io.EndianUtils;
 
-// Tests générés par ChatUniTest pour EndianUtils.getUShortBE
-public class EndianUtils_getUShortBE_32_0_Test {
+// Tests générés par ChatUniTest pour EndianUtils.getUShortBE(byte[])
+public class EndianUtils_getUShortBE_18_0_Test {
 
+    // Vérifie la lecture BE de deux octets, en appelant la version avec décalage par réflexion
     @Test
-    public void testGetUShortBEBasic() {
-        byte[] data = new byte[]{(byte) 0x12, (byte) 0x34};
-        int val = EndianUtils.getUShortBE(data, 0);
-        assertEquals(0x1234, val);
-    }
-
-    @Test
-    public void testGetUShortBEWithOffset() {
-        byte[] data = new byte[]{(byte) 0xFF, (byte) 0x0A, (byte) 0x0B, (byte) 0x00};
-        int val = EndianUtils.getUShortBE(data, 1);
-        assertEquals(0x0A0B, val);
+    public void testGetUShortBE() throws Exception {
+        EndianUtils endianUtils = new EndianUtils();
+        Method method = EndianUtils.class.getDeclaredMethod("getUShortBE", byte[].class, int.class);
+        method.setAccessible(true);
+        byte[] data = new byte[2];
+        data[0] = (byte) 0x12;
+        data[1] = (byte) 0x34;
+        int result = (int) method.invoke(endianUtils, data, 0);
+        assertEquals(0x1234, result);
     }
 }

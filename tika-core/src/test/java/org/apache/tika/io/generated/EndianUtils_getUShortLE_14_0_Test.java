@@ -18,24 +18,20 @@ package org.apache.tika.io.generated;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.IOException;
+
 import org.junit.jupiter.api.Test;
 
 import org.apache.tika.io.EndianUtils;
 
-// Tests générés par ChatUniTest pour EndianUtils.getUShortLE
-public class EndianUtils_getUShortLE_28_0_Test {
+// Tests générés par ChatUniTest pour EndianUtils.getUShortLE(byte[])
+public class EndianUtils_getUShortLE_14_0_Test {
 
+    // Vérifie la lecture LE des deux premiers octets du tableau
     @Test
-    public void testGetUShortLEBasic() {
-        byte[] data = new byte[]{(byte) 0x12, (byte) 0x34};
-        int val = EndianUtils.getUShortLE(data, 0);
-        assertEquals(0x3412, val);
-    }
-
-    @Test
-    public void testGetUShortLEWithOffset() {
-        byte[] data = new byte[]{0x00, (byte) 0x01, (byte) 0x02, 0x00};
-        int val = EndianUtils.getUShortLE(data, 1);
-        assertEquals(0x0201, val);
+    public void testGetUShortLE() throws IOException {
+        byte[] data = { 0x01, 0x02 };
+        int result = EndianUtils.getUShortLE(data);
+        assertEquals(0x0201, result);
     }
 }

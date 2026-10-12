@@ -17,6 +17,7 @@
 package org.apache.tika.io;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 
@@ -98,5 +99,17 @@ public class EndianUtilsManualTest {
     public void testReadIntLEAllZeroBytes() throws Exception {
         byte[] bytes = new byte[]{0x00, 0x00, 0x00, 0x00};
         assertEquals(0, EndianUtils.readIntLE(new ByteArrayInputStream(bytes)));
+    }
+
+    /**
+     * Intention : Vérifier qu'il manque un seul octet, le dernier, suffit à lancer l'exception.
+     * Avec un flux vide, les quatre lectures valent -1 et une condition mal combinée ('&' au lieu de '|'
+     * devant ch4) reste négative. Avec trois octets, seul ch4 vaut -1 : seule la condition originale le détecte.
+     */
+    @Test
+    public void testReadIntLEMissingLastByteThrows() {
+        byte[] bytes = new byte[]{0x01, 0x02, 0x03};
+        assertThrows(EndianUtils.BufferUnderrunException.class,
+                () -> EndianUtils.readIntLE(new ByteArrayInputStream(bytes)));
     }
 }

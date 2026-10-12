@@ -19,27 +19,33 @@ package org.apache.tika.io.generated;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 
 import org.apache.tika.io.EndianUtils;
 
-// Tests générés par ChatUniTest pour EndianUtils.readIntLE
-public class EndianUtils_readIntLE_12_0_Test {
+// Tests générés par ChatUniTest pour EndianUtils.getUShortBE(byte[], int)
+public class EndianUtils_getUShortBE_19_0_Test {
 
+    // Vérifie la lecture BE de deux octets à partir du décalage 0
     @Test
-    public void testReadIntLESuccess() throws Exception {
-        byte[] bytes = new byte[]{(byte) 0x78, (byte) 0x56, (byte) 0x34, (byte) 0x12};
-        int val = EndianUtils.readIntLE(new ByteArrayInputStream(bytes));
-        assertEquals(0x12345678, val);
+    public void testGetUShortBE() throws IOException {
+        byte[] data = new byte[] { 0x12, 0x34 };
+        int offset = 0;
+        int expected = 0x1234;
+        int actual = EndianUtils.getUShortBE(data, offset);
+        assertEquals(expected, actual);
     }
 
+    // Vérifie qu'un décalage au-delà du tableau lance une exception avec le message de la JVM
     @Test
-    public void testReadIntLEBufferUnderrun() {
-        byte[] shortBytes = new byte[]{0x01, 0x02, 0x03};
-        assertThrows(EndianUtils.BufferUnderrunException.class, () -> {
-            EndianUtils.readIntLE(new ByteArrayInputStream(shortBytes));
+    public void testGetUShortBEWithOffsetGreaterThanDataLength() throws IOException {
+        byte[] data = new byte[] { 0x12, 0x34 };
+        int offset = 2;
+        Exception exception = assertThrows(IndexOutOfBoundsException.class, () -> {
+            EndianUtils.getUShortBE(data, offset);
         });
+        assertEquals("Index 2 out of bounds for length 2", exception.getMessage());
     }
 }

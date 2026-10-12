@@ -33,23 +33,23 @@ Couverture de départ, mesurée par JaCoCo avec les tests de base de Tika:
 
 | Classe | Tests dédiés existants | Instructions | Branches | Lignes |
 | :--- | :--- | :---: | :---: | :---: |
-| XMLReaderUtils | XMLReaderUtilsTest | 42 % | 33 % | 48 % (214/446) |
-| EndianUtils | EndianUtilsTest | 23 % | 35 % | 25 % (32/126) |
+| XMLReaderUtils | XMLReaderUtilsTest | 42 % (540/1282) | 34 % (40/118) | 48 % (202/422) |
+| EndianUtils | EndianUtilsTest | 23 % (158/685) | 36 % (10/28) | 26 % (31/121) |
 
 Dans ces classes, nous avons ciblé les méthodes suivantes. Le tableau donne leur état avec les tests dédiés originaux (XMLReaderUtilsTest et EndianUtilsTest), qui sont aussi ceux utilisés pour l'analyse de mutation de départ :
 
 | Méthode | Lignes couvertes | Mutants | Tués | Survivants | Non couverts |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | XMLReaderUtils.getAttrValue | 0/4 | 5 | 0 | 0 | 5 |
-| XMLReaderUtils.setPoolSize | 26/29 | 19 | 0 | 18 | 1 |
-| XMLReaderUtils.getSAXParserFactory | 12/13 | 8 | 0 | 8 | 0 |
+| XMLReaderUtils.setPoolSize | 24/29 | 17 | 0 | 16 | 1 |
+| XMLReaderUtils.getSAXParserFactory | 10/11 | 8 | 0 | 8 | 0 |
 | EndianUtils.getUShortLE | 0/4 | 7 | 0 | 0 | 7 |
 | EndianUtils.getUShortBE | 0/4 | 7 | 0 | 0 | 7 |
 | EndianUtils.readIntLE | 0/7 | 12 | 0 | 0 | 12 |
 
 Pour getUShortLE et getUShortBE, les chiffres regroupent les deux versions de chaque méthode : celle qui prend un décalage (offset) et celle qui lit au début du tableau.
 
-Pour XMLReaderUtils : getAttrValue n'est jamais exécutée, et setPoolSize et getSAXParserFactory sont exécutées sans qu'aucune assertion ne vérifie leur effet. Aucun des 32 mutants n'est tué, alors que 83 % des lignes de ces trois méthodes sont couvertes (38/46).
+Pour XMLReaderUtils : getAttrValue n'est jamais exécutée, et setPoolSize et getSAXParserFactory sont exécutées sans qu'aucune assertion ne vérifie leur effet. Aucun des 30 mutants n'est tué, alors que 77 % des lignes de ces trois méthodes sont couvertes (34/44).
 
 Pour EndianUtils : EndianUtilsTest ne teste que readUE7, readUIntLE, readUIntBE et readIntME. Les trois méthodes ciblées ne sont jamais exécutées, ni par EndianUtilsTest ni par le reste de la suite de tika-core. Aucun de leurs 26 mutants n'est donc couvert au départ.
 
@@ -147,7 +147,7 @@ Nous évaluons chaque oracle selon trois critères :
 | getUShortLE et getUShortBE | Valeur exacte (0x0201 en LE, 0x1234 en BE) pour deux octets lus au décalage 0, IndexOutOfBoundsException pour un décalage hors du tableau, et message exact de la JVM. | Valeur exacte pour un octet négatif (0x80 donne 0x0180) et pour 0xFFFF (65535), et lecture avec la version sans décalage. | IA pertinente et spécifique pour les tests conservés. Mais 4 de ses tests avaient un oracle faux et ont été retirés par ChatUniTest et la version sans décalage de getUShortBE n'est jamais appelée même dans le fichier généré pour. |
 | readIntLE | Valeur exacte 0x78563412 pour les octets 12 34 56 78, et BufferUnderrunException attendue pour un flux vide (après correction). | Valeur exacte pour un octet de poids fort négatif (0x800000FF), 0 attendu pour quatre octets nuls, et BufferUnderrunException quand seul le dernier octet manque. | IA spécifique pour la valeur lue, mais son cas d'erreur est trop facile, avec un flux vide, toutes les lectures échouent, ce qui ne vérifie pas comment la condition combine les octets. Elle ne teste pas non plus la valeur limite 0. |
 
-Conséquence sur les mutants : pour setPoolSize, l'oracle trivial de l'IA ne tue aucun mutant par son assertion. Les 6 mutants détectés sont détectés parce que la méthode plante ou boucle à l'infini. Les oracles écrits à la main en détectent 16 sur 19. Pour EndianUtils, les oracles de l'IA tuent 21 des 26 mutants. Les oracles écrits à la main en ajoutent 3, la version sans décalage de getUShortBE, la valeur limite 0 et le dernier octet manquant de readIntLE.
+Conséquence sur les mutants : pour setPoolSize, l'oracle trivial de l'IA ne tue aucun mutant par son assertion. Les 4 mutants détectés sont détectés parce que la méthode plante ou se bloque. Les oracles écrits à la main en détectent 14 sur 17. Pour EndianUtils, les oracles de l'IA tuent 21 des 26 mutants. Les oracles écrits à la main en ajoutent 3, la version sans décalage de getUShortBE, la valeur limite 0 et le dernier octet manquant de readIntLE.
 
 En résumé on trouve que l'IA écrit des oracles pertinents et spécifiques quand le résultat est une valeur de retour visible (getSAXParserFactory, EndianUtils). L'IA fait des vérifications triviales quand l'effet de la méthode est caché dans l'état interne (setPoolSize). Aussi l'IA se trompe défois sur la valeur attendue (4 tests EndianUtils), et elle oublie les valeurs limites et les variantes d'une même méthode. Les tests écrits à la main vont compenser en visant les effets internes et les valeurs limites.
 
@@ -159,26 +159,47 @@ PIT 1.20.0 (avec pitest-junit5-plugin 1.2.2) est ajouté dans tika-core/pom.xml.
 ./mvnw -pl tika-core test-compile org.pitest:pitest-maven:mutationCoverage
 ```
 
+Pour les deux autres configurations, on remplace la liste des tests avec -DtargetTests :
+
+```
+# Tests originaux seulement
+./mvnw -pl tika-core test-compile org.pitest:pitest-maven:mutationCoverage "-DtargetTests=org.apache.tika.utils.XMLReaderUtilsTest,org.apache.tika.io.EndianUtilsTest"
+
+# Tests originaux + générés
+./mvnw -pl tika-core test-compile org.pitest:pitest-maven:mutationCoverage "-DtargetTests=org.apache.tika.utils.XMLReaderUtilsTest,org.apache.tika.io.EndianUtilsTest,org.apache.tika.utils.generated.XMLReaderUtils*,org.apache.tika.io.generated.*"
+```
+
+Chaque configuration a été exécutée deux fois, avec des résultats identiques.
+
 Résultats sur les méthodes ciblées. PIT compte les mutants en timeout comme détectés :
 
-| Suite de tests | XMLReaderUtils (32 mutants) | EndianUtils (26 mutants) | Total (58 mutants) |
+| Suite de tests | XMLReaderUtils (30 mutants) | EndianUtils (26 mutants) | Total (56 mutants) |
 | :--- | :---: | :---: | :---: |
-| Tests originaux | 0/32 (0 %) | 0/26 (0 %) | 0/58 (0 %) |
-| Tests originaux + générés | 16/32 (50 %) | 21/26 (81 %) | 37/58 (64 %) |
-| Tests originaux + générés + manuels | 26/32 (81 %) | 24/26 (92 %) | 50/58 (86 %) |
+| Tests originaux | 0/30 (0 %) | 0/26 (0 %) | 0/56 (0 %) |
+| Tests originaux + générés | 13/30 (43 %) | 21/26 (81 %) | 34/56 (61 %) |
+| Tests originaux + générés + manuels | 24/30 (80 %) | 24/26 (92 %) | 48/56 (86 %) |
 
 Par méthode :
 
 | Méthode | Originaux | + générés | + manuels |
 | :--- | :---: | :---: | :---: |
 | XMLReaderUtils.getAttrValue | 0/5 | 4/5 | 5/5 |
-| XMLReaderUtils.setPoolSize | 0/19 | 6/19 | 16/19 |
-| XMLReaderUtils.getSAXParserFactory | 0/8 | 6/8 | 5/8 |
+| XMLReaderUtils.setPoolSize | 0/17 | 4/17 | 14/17 |
+| XMLReaderUtils.getSAXParserFactory | 0/8 | 5/8 | 5/8 |
 | EndianUtils.getUShortLE | 0/7 | 7/7 | 7/7 |
 | EndianUtils.getUShortBE | 0/7 | 6/7 | 7/7 |
 | EndianUtils.readIntLE | 0/12 | 8/12 | 10/12 |
 
-Les tests générés ne détectent donc pas tous les mutants, 16 mutants sur 32 survivent dans XMLReaderUtils, et 5 sur 26 dans EndianUtils. Pour getSAXParserFactory, le score baisse de 6/8 à 5/8 en ajoutant les tests manuels. L'écart vient du mutant de la ligne 236 : PIT le classe en timeout avec les tests originaux et générés, puis survivant avec la suite complète. Ca le refait à chaque exécution. Il ne change pas le comportement de la méthode donc les tests ne le détectent pas, donc quand PIT le compte comme détecté c'est car l'exécution prend trop de temps.
+Score de mutation sur les classes entières (tous les mutants de la classe, y compris les méthodes que nous n'avons pas ciblées) :
+
+| Classe | Originaux | + générés | + manuels |
+| :--- | :---: | :---: | :---: |
+| XMLReaderUtils (181 mutants) | 13/181 (7 %) | 34/181 (19 %) | 41/181 (23 %) |
+| EndianUtils (206 mutants) | 38/206 (18 %) | 59/206 (29 %) | 62/206 (30 %) |
+
+Les scores restent bas sur les classes entières, car la plupart des méthodes que nous n'avons pas ciblées ne sont toujours pas couvertes (70 mutants non couverts dans XMLReaderUtils, 128 dans EndianUtils).
+
+Les tests générés ne détectent donc pas tous les mutants : 17 mutants sur 30 survivent dans XMLReaderUtils, et 5 sur 26 dans EndianUtils.
 
 ## 5. Mutants détectés par les tests générés, et pourquoi
 
@@ -193,17 +214,16 @@ Les tests générés ne détectent donc pas tous les mutants, 16 mutants sur 32 
 
 Survivant : la borne de boucle (i < length remplacé par i <= length), car aucun test ne place d'attribut au-delà de getLength().
 
-### getSAXParserFactory (6/8)
+### getSAXParserFactory (5/8)
 
-Le test vérifie la valeur de chaque option. Il tue donc les mutants qui suppriment setNamespaceAware(true) (ligne 229) et les trois appels qui désactivent les entités externes et le chargement de DTD externes (lignes 232 à 234). Il tue aussi le mutant qui renvoie null (ligne 239), grâce à assertNotNull. La ligne 236 est classée en timeout, mais ce n'est pas une vraie détection (voir section 7).
+Le test vérifie la valeur de chaque option. Il tue donc les mutants qui suppriment setNamespaceAware(true) (ligne 229) et les trois appels qui désactivent les entités externes et le chargement de DTD externes (lignes 232 à 234). Il tue aussi le mutant qui renvoie null (ligne 239), grâce à assertNotNull. Les mutants des lignes 230, 231 et 236 survivent, car ils sont équivalents (voir section 7).
 
-### setPoolSize (6/19)
+### setPoolSize (4/17)
 
-Aucun mutant n'est tué grâce à l'assertion sur getPoolSize(). Ils sont tous tués parce que la méthode plante ou ne se termine plus :
+Aucun mutant n'est tué grâce à l'assertion sur getPoolSize(). Ils sont tous détectés parce que la méthode plante ou se bloque :
 - Ligne 954, condition poolSize < 0 inversée : la méthode lance IllegalArgumentException pour la valeur 5.
 - Lignes 964 et 988, suppression de lock() : l'appel à unlock() qui suit lance IllegalMonitorStateException.
-- Lignes 974 et 993, i++ remplacé par i-- : la boucle de remplissage ne se termine plus (timeout).
-- Ligne 971, poolSize > 0 remplacé par poolSize >= 0 : classé en timeout. Aucun test de cette suite n'appelle setPoolSize(0), donc ce n'est pas une vraie détection, comme pour la ligne 236 de getSAXParserFactory.
+- Ligne 999, suppression de unlock() sur le verrou du pool de DOMBuilders : le verrou n'est jamais relâché et PIT classe ce mutant en timeout. Comme pour la ligne 1032 de getAttrValue, la détection vient d'un blocage de l'exécution, pas d'une assertion.
 
 Les 13 autres mutants survivent : vidage des pools (clear), conditions poolSize > 0, bornes des boucles, etc. Le test ne regarde jamais le contenu des pools.
 
@@ -302,11 +322,11 @@ Résultat : 33 tests, 0 échec
 
 ## 9. Conclusion
 
-En conclusion, on voit que la couverture de code n'est pas un outil qui sert à juger les tests, mais un outil quantitatif. La couverture indique quel code est exécuté, pas s'il est vérifié. Au départ, 83 % (38/46) des lignes de setPoolSize, getAttrValue et getSAXParserFactory étaient couvertes, mais aucun de leurs 32 mutants n'était tué. 
+En conclusion, on voit que la couverture de code n'est pas un outil qui sert à juger les tests, mais un outil quantitatif. La couverture indique quel code est exécuté, pas s'il est vérifié. Au départ, 77 % (34/44) des lignes de setPoolSize, getAttrValue et getSAXParserFactory étaient couvertes, mais aucun de leurs 30 mutants n'était tué. 
 
-Nous avons généré des tests par ChatUniTest et nous sommes passés de 0 mutant tué à 37/58 mutants tués. Les tests de ChatUniTest étaient efficaces quand la méthode renvoyait une valeur facile à vérifier comme pour EndianUtils (21/26). Mais les tests de ChatUniTest devenaient triviaux quand l'effet était caché dans l'état interne. La couverture pouvait donner une fausse confiance avec les tests générés, par exemple readIntLE était couvert à 100 %, mais 4 de ses 12 mutants survivaient. ChatUniTest a aussi eu des difficultés : aucun test de readIntLE ne compilait sans une correction manuelle, et il a retiré lui-même 4 tests dont l'oracle était faux. 
+Nous avons généré des tests par ChatUniTest et nous sommes passés de 0 mutant tué à 34/56 mutants tués. Les tests de ChatUniTest étaient efficaces quand la méthode renvoyait une valeur facile à vérifier comme pour EndianUtils (21/26). Mais les tests de ChatUniTest devenaient triviaux quand l'effet était caché dans l'état interne. La couverture pouvait donner une fausse confiance avec les tests générés, par exemple readIntLE était couvert à 100 %, mais 4 de ses 12 mutants survivaient. ChatUniTest a aussi eu des difficultés : aucun test de readIntLE ne compilait sans une correction manuelle, et il a retiré lui-même 4 tests dont l'oracle était faux. 
 
-Nous avons ensuite ajouté les tests manquants et nous sommes passés à 50/58 mutants tués (26/32 pour XMLReaderUtils, 24/26 pour EndianUtils). Les tests que nous avons dû ajouter concernaient les valeurs limites et les états internes que ChatUniTest ne testait pas. Au final il reste 8 mutants et 7 sont équivalents.
+Nous avons ensuite ajouté les tests manquants et nous sommes passés à 48/56 mutants tués (24/30 pour XMLReaderUtils, 24/26 pour EndianUtils). Les tests que nous avons dû ajouter concernaient les valeurs limites et les états internes que ChatUniTest ne testait pas. Au final il reste 8 mutants et 7 sont équivalents.
 
 ChatUniTest est un bon outil, mais il ne faut pas oublier de revérifier après lui.
 
@@ -319,6 +339,8 @@ Génération de tests : qwen2.5-coder:7b a été utilisé par ChatUniTest pour g
 Claude a été utilisé pour proposer une structure du rapport qui suit les étapes et les critères d'évaluation de l'énoncé ; 
 
 Compréhension et approfondissement : Claude a été utilisé pour expliquer le fonctionnement des outils, notamment la configuration de PIT dans le pom, la différence entre mutants survivants, non couverts et en timeout, ainsi que la lecture des logs de ChatUniTest et l'approfondissement des cas limites; 
+
+Analyse des données : le 12 octobre 2026, Claude (Claude Code) a relancé les tests, JaCoCo et PIT sur les trois suites de tests, a comparé les résultats aux chiffres du rapport et a corrigé les chiffres qui ne correspondaient pas (sections 1, 3, 4, 5 et 9), puis a ajouté les scores de mutation sur les classes entières et les commandes PIT de chaque configuration (section 4) ; 
 
 Travail réalisé par l'équipe : le choix des classes, l'exécution de ChatUniTest, l'écriture des tests manuels et la validation finale du rapport ; Confidentialité et sécurité : le code analysé provient du projet libre Apache Tika, qui est public. Les seuls renseignements personnels présents dans les fichiers consultés par l'outil sont les noms et matricules des membres du l'équipe, inscrits dans le rapport. Aucun autre renseignement personnel n'a été partagé.
 

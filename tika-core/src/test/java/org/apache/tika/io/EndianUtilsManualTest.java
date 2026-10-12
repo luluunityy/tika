@@ -24,15 +24,17 @@ import java.io.ByteArrayInputStream;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests manuels ciblant spécifiquement les mutants survivants
- * (masques de bits et bits de signe négatif sur les octets).
+ * Tests manuels pour getUShortLE, getUShortBE et readIntLE.
+ * Les trois derniers tests ciblent les mutants qui survivaient aux tests générés ;
+ * les quatre premiers vérifient la lecture d'octets négatifs et de valeurs maximales.
  */
 public class EndianUtilsManualTest {
 
     /**
-     * Intention : Tuer les mutants qui suppriment le masque '& 0xFF' dans getUShortLE.
-     * En Java, les 'byte' sont signés (-128 à 127). Un octet comme 0x80 (128 non signé) vaut -128.
-     * Sans '& 0xFF', une promotion en int donne 0xFFFFFF80, corrompant l'addition arithmétique !
+     * Intention : vérifier que getUShortLE lit un octet négatif comme une valeur non signée.
+     * En Java, les 'byte' sont signés (-128 à 127) : l'octet 0x80 vaut -128, et c'est le masque
+     * '& 0xFF' qui le ramène à 128. Ce test ne tue aucun mutant de plus que les tests générés :
+     * PIT remplace '& 0xFF' par '| 0xFF', ce que les tests générés détectent déjà.
      */
     @Test
     public void testNegativeByteValuesAreUnsignedInGetUShortLE() {
@@ -43,7 +45,8 @@ public class EndianUtilsManualTest {
     }
 
     /**
-     * Intention : Tuer les mutants qui suppriment le masque '& 0xFF' dans getUShortBE.
+     * Intention : vérifier que getUShortBE lit un octet négatif comme une valeur non signée.
+     * Même cas que pour getUShortLE ; aucun mutant supplémentaire n'est tué.
      */
     @Test
     public void testNegativeByteValuesAreUnsignedInGetUShortBE() {
@@ -54,8 +57,9 @@ public class EndianUtilsManualTest {
     }
 
     /**
-     * Intention : Vérifier les valeurs limites pleines (0xFFFF = 65535 non signé).
-     * Tue tout mutant qui tronque, modifie le décalage (<< 8) ou inverse les opérations.
+     * Intention : vérifier la valeur maximale (0xFFFF = 65535 non signé) en LE et en BE.
+     * Les mutants de décalage et d'addition de ces méthodes sont déjà tués par les tests générés ;
+     * ce test n'en tue pas de nouveaux.
      */
     @Test
     public void testMaxUShortValues() {
@@ -65,9 +69,9 @@ public class EndianUtilsManualTest {
     }
 
     /**
-     * Intention : Tuer les mutants de condition de borne et de vérification d'exception dans readIntLE.
-     * Vérifie la lecture avec des octets négatifs (> 0x7F) pour confirmer qu'ils sont bien lus
-     * sans déclencher par erreur une BufferUnderrunException prématurée.
+     * Intention : vérifier que readIntLE lit correctement des octets supérieurs à 0x7F,
+     * sans lancer BufferUnderrunException par erreur. Ce test ne tue aucun mutant
+     * que les tests générés ne tuaient pas déjà.
      */
     @Test
     public void testReadIntLENegativeBytes() throws Exception {

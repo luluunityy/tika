@@ -1,250 +1,325 @@
-Welcome to Apache Tika  <https://tika.apache.org/>
-=================================================
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
 
-[![license](https://img.shields.io/github/license/apache/tika.svg?maxAge=2592000)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Jenkins](https://img.shields.io/jenkins/s/https/ci-builds.apache.org/job/Tika/job/tika-main-jdk17.svg?maxAge=3600)](https://ci-builds.apache.org/job/Tika/job/tika-main-jdk17/)
-[![Jenkins tests](https://img.shields.io/jenkins/t/https/ci-builds.apache.org/job/Tika/job/tika-main-jdk17.svg?maxAge=3600)](https://ci-builds.apache.org/job/Tika/job/tika-main-jdk17/lastBuild/testReport/)
-[![Maven Central](https://img.shields.io/maven-central/v/org.apache.tika/tika.svg?maxAge=86400)](http://search.maven.org/#search|ga|1|g%3A%22org.apache.tika%22)
+    http://www.apache.org/licenses/LICENSE-2.0
 
-Apache Tika(TM) is a toolkit for detecting and extracting metadata and structured text content from various documents using existing parser libraries.
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
 
-Tika is a project of the [Apache Software Foundation](https://www.apache.org).
+# IFT3913 – Tâche 2 : génération de tests avec ChatUniTest et analyse de mutation
 
-Apache Tika, Tika, Apache, the Apache feather logo, and the Apache Tika project logo are trademarks of The Apache Software Foundation.
+Équipe :
+- Marguerite Rouleau, matricule : 20311630
+- Yaovi Florient Gadedjro Abagha, matricule : 20225447
 
-Quick Start
-===========
+Cas d'étude : Apache Tika, module tika-core.
 
-**Parse a file in Java:**
+## 1. Classes choisies
 
-```java
-import org.apache.tika.Tika;
+Nous avons choisi deux classes de tika-core qui ont déjà des tests dans Tika, mais qui ne sont pas couvertes à 100 % : XMLReaderUtils (paquet org.apache.tika.utils) et EndianUtils (paquet org.apache.tika.io).
 
-Tika tika = new Tika();
-String text = tika.parseToString(new File("document.pdf"));
-System.out.println(text);
-```
+Couverture de départ, mesurée par JaCoCo avec les tests de base de Tika:
 
-**From the command line:**
+| Classe | Tests dédiés existants | Instructions | Branches | Lignes |
+| :--- | :--- | :---: | :---: | :---: |
+| XMLReaderUtils | XMLReaderUtilsTest | 42 % | 33 % | 48 % (214/446) |
+| EndianUtils | EndianUtilsTest | 23 % | 35 % | 25 % (32/126) |
 
-```bash
-java -jar tika-app-*.jar --text document.pdf
-```
+Dans ces classes, nous avons ciblé les méthodes suivantes. Le tableau donne leur état avec les tests dédiés originaux (XMLReaderUtilsTest et EndianUtilsTest), qui sont aussi ceux utilisés pour l'analyse de mutation de départ :
 
-**Maven dependency:**
+| Méthode | Lignes couvertes | Mutants | Tués | Survivants | Non couverts |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| XMLReaderUtils.getAttrValue | 0/4 | 5 | 0 | 0 | 5 |
+| XMLReaderUtils.setPoolSize | 26/29 | 19 | 0 | 18 | 1 |
+| XMLReaderUtils.getSAXParserFactory | 12/13 | 8 | 0 | 8 | 0 |
+| EndianUtils.getUShortLE | 0/4 | 7 | 0 | 0 | 7 |
+| EndianUtils.getUShortBE | 0/4 | 7 | 0 | 0 | 7 |
+| EndianUtils.readIntLE | 0/7 | 12 | 0 | 0 | 12 |
 
-```xml
-<dependency>
-    <groupId>org.apache.tika</groupId>
-    <artifactId>tika-parsers-standard-package</artifactId>
-    <version>4.x.y</version>
-    <type>pom</type>
-</dependency>
-```
+Pour getUShortLE et getUShortBE, les chiffres regroupent les deux versions de chaque méthode : celle qui prend un décalage (offset) et celle qui lit au début du tableau.
 
-Getting Started
-===============
-Pre-built binaries of Apache Tika standalone applications are available
-from https://tika.apache.org/download.html . Pre-built binaries of all the
-Tika jars can be fetched from Maven Central or your favourite Maven mirror.
+Pour XMLReaderUtils : getAttrValue n'est jamais exécutée, et setPoolSize et getSAXParserFactory sont exécutées sans qu'aucune assertion ne vérifie leur effet. Aucun des 32 mutants n'est tué, alors que 83 % des lignes de ces trois méthodes sont couvertes (38/46).
 
-**Tika 2.X and support for Java 8 reached End of Life (EOL) in April, 2025. 
-See [Tika Roadmap 2.x, 3.x and beyond](https://cwiki.apache.org/confluence/display/TIKA/Tika+Roadmap+--+2.x%2C+3.x+and+Beyond).** 
+Pour EndianUtils : EndianUtilsTest ne teste que readUE7, readUIntLE, readUIntBE et readIntME. Les trois méthodes ciblées ne sont jamais exécutées, ni par EndianUtilsTest ni par le reste de la suite de tika-core. Aucun de leurs 26 mutants n'est donc couvert au départ.
 
-Tika is based on **Java 17** and uses the [Maven 3](https://maven.apache.org) build system.
-**N.B.** [Docker](https://www.docker.com/products/personal) is used for tests in tika-integration-tests. If Docker is not installed, those tests are skipped.
+## 2. Génération des tests avec ChatUniTest
 
-To build Tika from source, use the following command in the main directory:
+### Installation
 
-    ./mvnw clean install
-
-The Maven wrapper (`mvnw`) is included in the repository and will automatically download
-the correct Maven version if needed. On Windows, use `mvnw.cmd` instead.
-
-The build consists of a number of components, including a standalone runnable jar that you can use to try out Tika features. You can run it like this:
-
-    java -jar tika-app/target/tika-app-*.jar --help
-
-
-To build a specific project (for example, tika-server-standard):
-
-    ./mvnw clean install -am -pl :tika-server-standard
-
-If the ossindex-maven-plugin is causing the build to fail because a dependency
-has now been discovered to have a vulnerability:
-
-    ./mvnw clean install -Dossindex.skip
-
-
-Faster Builds
-=============
-
-**Fast profile** - Use `-Pfast` to skip tests, checkstyle, and spotless:
-
-    ./mvnw clean install -Pfast
-
-**Parallel builds** - Add `-T1C` to build with 1 thread per CPU core:
-
-    ./mvnw clean install -Pfast -T1C
-
-**Maven Daemon (mvnd)** - Keeps a warm JVM running for 2-3x faster rebuilds:
-
-```bash
-# Install: https://github.com/apache/maven-mvnd
-# macOS: brew install mvndaemon/tap/mvnd
-
-# Use exactly like mvn
-mvnd clean install -Pfast
-mvnd test -pl :tika-core
-```
-
-**Combine both** for maximum speed during development:
-
-    mvnd clean install -Pfast -T1C
-
-
-Reproducible Builds
-===================
-
-Apache Tika supports [reproducible builds](https://reproducible-builds.org/). This means
-that building the same source code with the same JDK version should produce
-byte-for-byte identical artifacts, regardless of the build machine or time.
-
-Key configuration:
-- `project.build.outputTimestamp` is set in `tika-parent/pom.xml`
-- All Maven plugins are configured to produce deterministic output
-
-To verify the build plan supports reproducibility:
-
-    ./mvnw artifact:check-buildplan
-
-To verify two builds produce identical artifacts:
-
-    ./mvnw clean install -DskipTests
-    mv ~/.m2/repository/org/apache/tika tika-build-1
-    ./mvnw clean install -DskipTests
-    diff -r tika-build-1 ~/.m2/repository/org/apache/tika
-
-
-Maven Dependencies
-==================
-
-Apache Tika provides *Bill of Material* (BOM) artifact to align Tika module versions and simplify version management. 
-To avoid convergence errors in your own project, import this
-bom or Tika's parent pom.xml in your dependency management section.
-
-If you use Apache Maven:
+ChatUniTest est ajouté comme plugin Maven dans tika-core/pom.xml. Il utilise le modèle ouvert qwen2.5-coder:7b exécuté localement avec Ollama :
 
 ```xml
-<project>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-       <groupId>org.apache.tika</groupId>
-       <artifactId>tika-bom</artifactId>
-       <version>4.x.y</version>
-       <type>pom</type>
-       <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-parsers-standard-package</artifactId>
-      <type>pom</type>
-      <!-- version not required since BOM included -->
-    </dependency>
-  </dependencies>
-</project>
+<plugin>
+  <groupId>io.github.ZJU-ACES-ISE</groupId>
+  <artifactId>chatunitest-maven-plugin</artifactId>
+  <version>1.4.1</version>
+  <configuration>
+    <apiKeys>ollama</apiKeys>
+    <model>qwen2.5-coder:7b</model>
+    <url>http://localhost:11434/v1/chat/completions</url>
+    <testNumber>2</testNumber>
+    <maxRounds>3</maxRounds>
+    <maxPromptTokens>8192</maxPromptTokens>
+  </configuration>
+</plugin>
 ```
 
-For Gradle:
-
-```kotlin
-dependencies {
-  implementation(platform("org.apache.tika:tika-bom:4.x.y"))
-
-  // version not required since bom (platform in Gradle terms)
-  implementation("org.apache.tika:tika-parsers-standard-package@pom")
-}
-```
-
-Migrating to 4.x
-================
-TBD
-
-Contributing
-============
-See [CONTRIBUTING.md](CONTRIBUTING.md) and https://tika.apache.org/contribute.html
-
-[![contributors](https://contributors-img.web.app/image?repo=apache/tika)](https://github.com/apache/tika/graphs/contributors)
-
-Building from a Specific Tag
-============================
-Let's assume that you want to build the 3.0.1 tag:
-```
-0. Download and install hub.github.com
-1. git clone https://github.com/apache/tika.git
-2. cd tika
-3. git checkout 3.0.1
-4. ./mvnw clean install
-```
-
-If a new vulnerability has been discovered between the date of the
-tag and the date you are building the tag, you may need to build with:
+Commande utilisée dans tika-core (une méthode à la fois) :
 
 ```
-4. ./mvnw clean install -Dossindex.skip
+mvn chatunitest:method "-DselectMethod=org.apache.tika.utils.XMLReaderUtils#setPoolSize"
 ```
 
-If a local test is not working in your environment, please notify
- the project at dev@tika.apache.org. As an immediate workaround,
- you can turn off individual tests with e.g.:
+### Déroulement
+
+- getAttrValue : le premier test (35_0) ne compilait pas après 3 rondes, le second (35_1) a été réparé automatiquement par ChatUniTest à la ronde suivante.
+
+- setPoolSize : avec maxPromptTokens = 4096, la génération était abandonnée (« Exceed max prompt tokens »), car XMLReaderUtils fait plus de 1000 lignes. Avec 8192, le test a été généré et exécuté avec succès dès la première ronde.
+
+- getSAXParserFactory : un premier test ne compilait pas, le deuxième a compilé et passé dès la première ronde.
+
+- getUShortLE et getUShortBE : ChatUniTest traite séparément les deux versions de chaque méthode (avec et sans décalage) et a produit un fichier pour chacune, dès la première ronde. Pour trois de ces fichiers, le log indique « Processed test … generated successfully » : ChatUniTest a retiré lui-même les tests qui échouaient à l'exécution. Les 4 tests retirés avaient un oracle faux :
+
+  - getUShortLE(data, 1) sur les octets 01 02 03 04 : l'IA attendait 0x0403, alors que la méthode lit les octets 1 et 2 et renvoie 0x0302
+
+  - getUShortBE avec un décalage de -1 : l'IA attendait le message « Index 0 out of bounds », alors que la JVM indique « Index -1 out of bounds »
+
+  - deux tests appelaient getUShortBE par réflexion et attendaient IndexOutOfBoundsException, alors que la réflexion l'enveloppe dans une InvocationTargetException.
+
+- readIntLE : aucun test n'a compilé. Sur deux exécutions de ChatUniTest (4 essais, 12 rondes), l'IA a toujours référencé BufferUnderrunException comme une classe du paquet org.apache.tika.io, alors que c'est une classe imbriquée (EndianUtils.BufferUnderrunException). Une fois, elle a même inventé une classe BufferUnderflowException. Nous avons gardé le dernier essai (6_0) et corrigé cette référence à la main.
+
+### Où sont les tests générés
+
+- Tests bruts produits par ChatUniTest : tika-core/chatunitest-tests/org/apache/tika/utils/ et tika-core/chatunitest-tests/org/apache/tika/io/ (pour readIntLE, l'essai qui ne compilait pas)
+
+- Tests intégrés au projet : tika-core/src/test/java/org/apache/tika/utils/generated/ et tika-core/src/test/java/org/apache/tika/io/generated/
+
+| Fichier | Méthode testée | Nombre de tests |
+| :--- | :--- | :---: |
+| XMLReaderUtils_getAttrValue_35_1_Test | getAttrValue | 2 |
+| XMLReaderUtils_getSAXParserFactory_3_1_Test | getSAXParserFactory | 1 |
+| XMLReaderUtils_setPoolSize_32_0_Test | setPoolSize | 1 |
+| EndianUtils_getUShortLE_14_0_Test | getUShortLE(byte[]) | 1 |
+| EndianUtils_getUShortLE_15_0_Test | getUShortLE(byte[], int) | 3 |
+| EndianUtils_getUShortBE_18_0_Test | getUShortBE(byte[]), mais le test appelle la version avec décalage | 1 |
+| EndianUtils_getUShortBE_19_0_Test | getUShortBE(byte[], int) | 2 |
+| EndianUtils_readIntLE_6_0_Test | readIntLE | 2 |
+
+### Les tests générés compilent-ils et s'exécutent-ils sans intervention manuelle ?
+
+Sauf pour readIntLE, les tests compilaient et s'exécutaient déjà avec ChatUniTest. ChatUniTest y arrive aussi car il supprime les tests qui échouent(4 tests EndianUtils ont été enlevés). 
+
+Ce que nous avons du faire pour intégrer les tests:
+
+- Pour les 8 fichiers, adaptation de forme : déplacement dans les paquets generated, ajout de l'en-tête de licence Apache et remplacement des imports génériques (plus de 40 imports inutiles copiés de la classe testée pour XMLReaderUtils, une dizaine pour EndianUtils) par les imports nécessaires (règles du build de Tika).
+
+- Pour setPoolSize, retrait de l'annotation @ExtendWith(MockitoExtension.class), car le test n'utilise aucun mock.
+
+- Pour EndianUtils_getUShortLE_14_0_Test, retrait de @ExtendWith(MockitoExtension.class) et d'un mock d'EndianUtils créé dans setUp mais jamais utilisé.
+
+### Combien de corrections ont été nécessaires ?
+
+Une seule correction de fond, pour readIntLE : BufferUnderrunException.class remplacé par EndianUtils.BufferUnderrunException.class. Sinon ChatUniTest ne faisait aucun test pour cette méthode. Pas de modiifications pour le reste.
+
+## 3. Comparaison des oracles : IA et tests écrits à la main
+
+Nous évaluons chaque oracle selon trois critères :
+- Pertinence
+- Spécificité
+- Vérification triviale
+
+| Méthode | Oracle de l'IA | Oracle écrit à la main | Verdict |
+| :--- | :--- | :--- | :--- |
+| setPoolSize | assertEquals(5, getPoolSize()) : vérifie un champ affecté à la fin de la méthode. | Taille réelle des deux pools internes (lus par réflexion) après setPoolSize(0) et setPoolSize(3). | IA triviale et peu de pertinence : ne regarde pas les pools qui sont le vrai effet de la méthode. Main pertinent et spécifique. |
+| getAttrValue | Valeur exacte "value" pour un attribut en position 0, et null quand il n'y a aucun attribut. | null attendu quand l'attribut recherché est placé juste après la limite getLength(). | IA spécifique mais pas complet : teste que des cas simples. Main ciblée sur la borne de la boucle. |
+| getSAXParserFactory | Valeur attendue de chacune des 7 options de la fabrique (espaces de noms, validation, sécurité, entités externes, DTD). | Aucun test manuel. | IA pertinente et spécifique |
+| getUShortLE et getUShortBE | Valeur exacte (0x0201 en LE, 0x1234 en BE) pour deux octets lus au décalage 0, IndexOutOfBoundsException pour un décalage hors du tableau, et message exact de la JVM. | Valeur exacte pour un octet négatif (0x80 donne 0x0180) et pour 0xFFFF (65535), et lecture avec la version sans décalage. | IA pertinente et spécifique pour les tests conservés. Mais 4 de ses tests avaient un oracle faux et ont été retirés par ChatUniTest et la version sans décalage de getUShortBE n'est jamais appelée même dans le fichier généré pour. |
+| readIntLE | Valeur exacte 0x78563412 pour les octets 12 34 56 78, et BufferUnderrunException attendue pour un flux vide (après correction). | Valeur exacte pour un octet de poids fort négatif (0x800000FF), 0 attendu pour quatre octets nuls, et BufferUnderrunException quand seul le dernier octet manque. | IA spécifique pour la valeur lue, mais son cas d'erreur est trop facile, avec un flux vide, toutes les lectures échouent, ce qui ne vérifie pas comment la condition combine les octets. Elle ne teste pas non plus la valeur limite 0. |
+
+Conséquence sur les mutants : pour setPoolSize, l'oracle trivial de l'IA ne tue aucun mutant par son assertion. Les 6 mutants détectés sont détectés parce que la méthode plante ou boucle à l'infini. Les oracles écrits à la main en détectent 16 sur 19. Pour EndianUtils, les oracles de l'IA tuent 21 des 26 mutants. Les oracles écrits à la main en ajoutent 3, la version sans décalage de getUShortBE, la valeur limite 0 et le dernier octet manquant de readIntLE.
+
+En résumé on trouve que l'IA écrit des oracles pertinents et spécifiques quand le résultat est une valeur de retour visible (getSAXParserFactory, EndianUtils). L'IA fait des vérifications triviales quand l'effet de la méthode est caché dans l'état interne (setPoolSize). Aussi l'IA se trompe défois sur la valeur attendue (4 tests EndianUtils), et elle oublie les valeurs limites et les variantes d'une même méthode. Les tests écrits à la main vont compenser en visant les effets internes et les valeurs limites.
+
+## 4. Analyse de mutation avec PIT
+
+PIT 1.20.0 (avec pitest-junit5-plugin 1.2.2) est ajouté dans tika-core/pom.xml. La configuration cible XMLReaderUtils et EndianUtils, avec les tests originaux, nos tests manuels et les paquets generated. Commande :
 
 ```
-4. ./mvnw clean install -Dossindex.skip -Dtest=\!UnpackerResourceTest#testPDFImages
+./mvnw -pl tika-core test-compile org.pitest:pitest-maven:mutationCoverage
 ```
 
-License (see also LICENSE.txt)
-==============================
+Résultats sur les méthodes ciblées. PIT compte les mutants en timeout comme détectés :
 
-Collective work: Copyright 2011 The Apache Software Foundation.
+| Suite de tests | XMLReaderUtils (32 mutants) | EndianUtils (26 mutants) | Total (58 mutants) |
+| :--- | :---: | :---: | :---: |
+| Tests originaux | 0/32 (0 %) | 0/26 (0 %) | 0/58 (0 %) |
+| Tests originaux + générés | 16/32 (50 %) | 21/26 (81 %) | 37/58 (64 %) |
+| Tests originaux + générés + manuels | 26/32 (81 %) | 24/26 (92 %) | 50/58 (86 %) |
 
-Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at
+Par méthode :
 
-<https://www.apache.org/licenses/LICENSE-2.0>
+| Méthode | Originaux | + générés | + manuels |
+| :--- | :---: | :---: | :---: |
+| XMLReaderUtils.getAttrValue | 0/5 | 4/5 | 5/5 |
+| XMLReaderUtils.setPoolSize | 0/19 | 6/19 | 16/19 |
+| XMLReaderUtils.getSAXParserFactory | 0/8 | 6/8 | 5/8 |
+| EndianUtils.getUShortLE | 0/7 | 7/7 | 7/7 |
+| EndianUtils.getUShortBE | 0/7 | 6/7 | 7/7 |
+| EndianUtils.readIntLE | 0/12 | 8/12 | 10/12 |
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
+Les tests générés ne détectent donc pas tous les mutants, 16 mutants sur 32 survivent dans XMLReaderUtils, et 5 sur 26 dans EndianUtils. Pour getSAXParserFactory, le score baisse de 6/8 à 5/8 en ajoutant les tests manuels. L'écart vient du mutant de la ligne 236 : PIT le classe en timeout avec les tests originaux et générés, puis survivant avec la suite complète. Ca le refait à chaque exécution. Il ne change pas le comportement de la méthode donc les tests ne le détectent pas, donc quand PIT le compte comme détecté c'est car l'exécution prend trop de temps.
 
-Apache Tika includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the licenses listed in the LICENSE.txt file.
+## 5. Mutants détectés par les tests générés, et pourquoi
 
-Export Control
-==============
+### getAttrValue (4/5)
 
-This distribution includes cryptographic software.  The country in which you currently reside may have restrictions on the import, possession, use, and/or re-export to another country, of encryption software.  BEFORE using any encryption software, please  check your country's laws, regulations and policies concerning the import, possession, or use, and re-export of encryption software, to  see if this is permitted.  See <http://www.wassenaar.org/> for more information.
+| Ligne | Mutation | Tué par | Pourquoi |
+| :---: | :--- | :--- | :--- |
+| 1033 | condition du if inversée | testGetAttrValueFound | Le nom correspond, mais la condition inversée l'ignore, et la méthode renvoie null au lieu de "value". |
+| 1034 | retour remplacé par "" | testGetAttrValueFound | L'assertion attend exactement "value". |
+| 1037 | retour remplacé par "" | testGetAttrValueNotFound | L'assertion attend null, pas une chaîne vide. |
+| 1032 | condition de boucle inversée (i >= length) | timeout | Avec 0 attribut, la boucle ne s'arrête plus. |
 
-The U.S. Government Department of Commerce, Bureau of Industry and Security (BIS), has classified this software as Export Commodity Control Number (ECCN) 5D002.C.1, which includes information security software using or performing cryptographic functions with asymmetric algorithms.  The form and manner of this Apache Software Foundation distribution makes it eligible for export under the License Exception ENC Technology Software Unrestricted (TSU) exception (see the BIS Export Administration Regulations, Section 740.13) for both object code and source code.
+Survivant : la borne de boucle (i < length remplacé par i <= length), car aucun test ne place d'attribut au-delà de getLength().
 
-The following provides more details on the included cryptographic software:
+### getSAXParserFactory (6/8)
 
-Apache Tika uses the Bouncy Castle generic encryption libraries for extracting text content and metadata from encrypted PDF files.  See <http://www.bouncycastle.org/> for more details on Bouncy Castle.  
+Le test vérifie la valeur de chaque option. Il tue donc les mutants qui suppriment setNamespaceAware(true) (ligne 229) et les trois appels qui désactivent les entités externes et le chargement de DTD externes (lignes 232 à 234). Il tue aussi le mutant qui renvoie null (ligne 239), grâce à assertNotNull. La ligne 236 est classée en timeout, mais ce n'est pas une vraie détection (voir section 7).
 
-Mailing Lists
-=============
+### setPoolSize (6/19)
 
-* user@tika.apache.org - About using Tika
-* dev@tika.apache.org - About developing Tika
+Aucun mutant n'est tué grâce à l'assertion sur getPoolSize(). Ils sont tous tués parce que la méthode plante ou ne se termine plus :
+- Ligne 954, condition poolSize < 0 inversée : la méthode lance IllegalArgumentException pour la valeur 5.
+- Lignes 964 et 988, suppression de lock() : l'appel à unlock() qui suit lance IllegalMonitorStateException.
+- Lignes 974 et 993, i++ remplacé par i-- : la boucle de remplissage ne se termine plus (timeout).
+- Ligne 971, poolSize > 0 remplacé par poolSize >= 0 : classé en timeout. Aucun test de cette suite n'appelle setPoolSize(0), donc ce n'est pas une vraie détection, comme pour la ligne 236 de getSAXParserFactory.
 
-Subscribe by sending a message to `{list}-subscribe@tika.apache.org`.
+Les 13 autres mutants survivent : vidage des pools (clear), conditions poolSize > 0, bornes des boucles, etc. Le test ne regarde jamais le contenu des pools.
 
-Issue Tracker
-=============
+### getUShortLE (7/7) et getUShortBE (6/7)
 
-https://issues.apache.org/jira/browse/TIKA
+Les deux méthodes ont la même structure (masque & 0xFF sur chaque octet, décalage << 8, addition) et les mêmes mutants. Les tests testGetUShortLE (fichier 15_0) et testGetUShortBE (fichier 19_0) lisent deux octets au décalage 0 et attendent une valeur exacte : 0x0201 pour les octets 01 02 en LE, 0x1234 pour les octets 12 34 en BE. Chaque mutant change ce résultat :
 
-Security
-========
+| Ligne (LE / BE) | Mutation | Résultat LE | Résultat BE |
+| :---: | :--- | :---: | :---: |
+| 291 / 335 | & 0xFF remplacé par \| 0xFF sur le premier octet | 0x02FF | 0xFF34 |
+| 292 / 336 | & 0xFF remplacé par \| 0xFF sur le second octet | 0xFF01 | 0x12FF |
+| 292 / 336 | offset + 1 remplacé par offset - 1 | ArrayIndexOutOfBoundsException (indice -1) | ArrayIndexOutOfBoundsException (indice -1) |
+| 293 / 337 | << 8 remplacé par >> 8 | 0x0001 | 0x0034 |
+| 293 / 337 | addition remplacée par soustraction | 0x01FF | 0x11CC |
+| 293 / 337 | retour remplacé par 0 | 0 | 0 |
 
-See [SECURITY.md](SECURITY.md) and https://tika.apache.org/security.html
+Version sans décalage : dans getUShortLE(data), le retour remplacé par 0 (ligne 280) est tué par le fichier 14_0, qui attend 0x0201. Pour getUShortBE(data), le même mutant (ligne 324) n'est pas couvert : le fichier 18_0, généré pour cette version, appelle en fait la version avec décalage par réflexion.
+
+### readIntLE (8/12)
+
+- testReadIntLE attend exactement 0x78563412 pour les octets 12 34 56 78. Il tue les trois mutants qui remplacent un décalage << par >> et les trois qui remplacent une addition par une soustraction (ligne 133), ainsi que le retour remplacé par 0.
+- testReadIntLEThrowsBufferUnderrunException tue la condition inversée de la ligne 130 : avec un flux vide, la condition (ch1 | ch2 | ch3 | ch4) >= 0 est fausse et l'exception n'est plus lancée.
+
+Survivants (ligne 130) : la borne < 0 remplacée par <= 0, et les trois | remplacés par &. Avec un flux vide, les quatre lectures valent -1, et toute combinaison de -1 par & ou par | vaut encore -1 : l'exception est lancée comme dans le code original. Ces mutants sont analysés en sections 6 et 7.
+
+## 6. Tests ajoutés manuellement
+
+Fichiers : XMLReaderUtilsGetAttrValueTest et XMLReaderUtilsSetPoolSizeTest, dans tika-core/src/test/java/org/apache/tika/utils/, et EndianUtilsManualTest, dans tika-core/src/test/java/org/apache/tika/io/.
+
+### XMLReaderUtilsGetAttrValueTest.testDoesNotReadPastLength
+
+- But : vérifier que getAttrValue ne lit que les getLength() premiers attributs.
+- Données : un mock de Attributes avec getLength() = 1, l'attribut "other" à l'indice 0, et l'attribut recherché "target" (valeur "beyond") à l'indice 1, donc hors limite.
+- Oracle : d'après la Javadoc, la méthode renvoie « attribute value with that local name or null if not found ». "target" ne fait pas partie des attributs déclarés, donc le résultat attendu est null.
+- Mutants tués : la borne de boucle (ligne 1032, < remplacé par <=), qui survivait aux tests générés.
+
+### XMLReaderUtilsSetPoolSizeTest.testZeroPoolSizeEmptiesPools
+
+- But : vérifier que setPoolSize(0) vide les deux pools internes, de parsers SAX et de constructeurs DOM.
+- Données : 0 est la valeur limite entre le cas (poolSize < 0, exception) et le remplissage des pools (poolSize > 0).
+- Oracle : la Javadoc indique que « if a value of 0 is passed in, no SAXParsers or DOMBuilders will be pooled ». Les champs SAX_PARSERS et DOM_BUILDERS étant privés, le test les lit par réflexion et vérifie que leur taille est 0.
+- Mutants tués : suppression des deux appels à clear() (lignes 970 et 990), et les bornes des conditions poolSize < 0 et poolSize > 0 (lignes 954 et 991).
+
+### XMLReaderUtilsSetPoolSizeTest.testPoolsAreFilled
+
+- But : vérifier que setPoolSize(n) remplit chaque pool avec exactement n éléments.
+- Données : 3, une petite valeur supérieure à 1, pour détecter une boucle qui en ajoute un de trop ou un de moins.
+- Oracle : la Javadoc indique que la méthode reconstruit le pool from scratch, avec la taille demandée. Les deux files doivent donc contenir 3 éléments.
+- Mutants tués : les conditions inversées des lignes 971, 974, 991 et 993 (si poolSize > 0 et les boucles de remplissage).
+
+@AfterEach remet la taille par défaut après chaque test
+
+### EndianUtilsManualTest.testGetUShortWithoutOffsetReadsFromStart
+
+- But: vérifier les versions sans décalage, getUShortLE(data) et getUShortBE(data). Aucun test généré n'appelle getUShortBE(data).
+- Données : les octets 34 12 99. Ils donnent une valeur différente selon l'ordre de lecture, et le troisième octet ne doit pas être lu.
+- Oracle : la Javadoc indique que ces versions lisent « from the beginning of a byte array ». On attend donc 0x1234 en LE et 0x3412 en BE.
+- Mutants tués : le retour remplacé par 0 de getUShortBE(data) (ligne 324), qui n'était pas couvert. Celui de getUShortLE(data) (ligne 280) était déjà tué par le fichier généré 14_0.
+
+### EndianUtilsManualTest.testReadIntLEAllZeroBytes
+
+- But : vérifier qu'une lecture complète de quatre octets nuls n'est pas confondue avec un flux trop court.
+- Données : 00 00 00 00. C'est la valeur limite de la condition (ch1 | ch2 | ch3 | ch4) < 0 : le OU des octets vaut exactement 0.
+- Oracle : la Javadoc ne prévoit BufferUnderrunException que si « the stream cannot provide enough bytes ». Ici, les 4 octets sont présents, donc le résultat attendu est 0.
+- Mutants tués : la borne < 0 remplacée par <= 0 (ligne 130). Avec ce mutant, la méthode lance l'exception au lieu de renvoyer 0.
+
+### EndianUtilsManualTest.testReadIntLEMissingLastByteThrows
+
+- But : vérifier qu'il suffit qu'un seul octet manque, le dernier, pour que l'exception soit lancée.
+- Données : les octets 01 02 03. Les trois premières lectures réussissent et seule la quatrième renvoie -1. C'est le cas que le test généré, avec son flux vide, ne distingue pas.
+- Oracle : d'après la Javadoc, BufferUnderrunException est lancée si « the stream cannot provide enough bytes ». Il manque un octet, donc l'exception est attendue.
+- Mutants tués : le dernier | de la condition remplacé par & (ligne 130). Avec ce mutant, la condition devient (ch1 | ch2 | ch3) & ch4 = 3 & -1 = 3, qui est positive, et l'exception n'est plus lancée.
+
+### Autres tests de EndianUtilsManualTest
+
+Les quatre autres tests du fichier (testNegativeByteValuesAreUnsignedInGetUShortLE, testNegativeByteValuesAreUnsignedInGetUShortBE, testMaxUShortValues et testReadIntLENegativeBytes) vérifient la lecture d'octets négatifs (0x80, 0xFF) et la valeur maximale 65535. Ces cas sont pertinents en Java, où le type byte est signé. Mais ils ne tuent aucun mutant de plus que les tests générés : PIT remplace le masque & 0xFF par | 0xFF au lieu de le supprimer, et les tests générés détectent déjà ce changement avec des octets positifs.
+
+## 7. Mutants restants
+
+Avec toutes les suites de tests, il reste 6 mutants survivants dans XMLReaderUtils et 2 dans EndianUtils :
+
+- getSAXParserFactory, lignes 230, 231 et 236 : ces mutants suppriment setValidating(false), l'activation du traitement sécurisé et la désactivation de load-dtd-grammar. Sur la JVM utilisée, ces options ont déjà ces valeurs par défaut (on l'a vérifié avec SAXParserFactory.newInstance()). Ces mutants sont équivalents.
+- setPoolSize, lignes 974 et 993 (i < poolSize remplacé par i <= poolSize) : l'élément en trop est refusé par offer() sur une ArrayBlockingQueue pleine, et le refus est ignoré. Le comportement est identique : mutants équivalents.
+- setPoolSize, ligne 968 (suppression de parser.reset()) : les anciens parsers sont jetés juste après. L'effet n'est pas observable sans inspecter l'état interne de chaque parser.
+- EndianUtils.readIntLE, ligne 130 (un des deux premiers | de la condition (ch1 | ch2 | ch3 | ch4) < 0 remplacé par &) : quand un flux est épuisé, read() renvoie -1 à cet appel et à tous les suivants. Si ch1, ch2 ou ch3 vaut -1, ch4 vaut donc aussi -1. Comme ch4 reste combiné par un |, la condition reste négative et l'exception est lancée comme dans le code original. Ces deux mutants sont équivalents pour tout flux qui continue de renvoyer -1 une fois arrivé à la fin, ce qui est le cas des flux standards de Java
+
+## 8. Exécution
+
+Tous les tests passent en local :
+
+```
+./mvnw -pl tika-core test -Dtest="XMLReaderUtils*Test,EndianUtils*Test"
+```
+
+Résultat : 33 tests, 0 échec
+
+## 9. Conclusion
+
+En conclusion, on voit que la couverture de code n'est pas un outil qui sert à juger les tests, mais un outil quantitatif. La couverture indique quel code est exécuté, pas s'il est vérifié. Au départ, 83 % (38/46) des lignes de setPoolSize, getAttrValue et getSAXParserFactory étaient couvertes, mais aucun de leurs 32 mutants n'était tué. 
+
+Nous avons généré des tests par ChatUniTest et nous sommes passés de 0 mutant tué à 37/58 mutants tués. Les tests de ChatUniTest étaient efficaces quand la méthode renvoyait une valeur facile à vérifier comme pour EndianUtils (21/26). Mais les tests de ChatUniTest devenaient triviaux quand l'effet était caché dans l'état interne. La couverture pouvait donner une fausse confiance avec les tests générés, par exemple readIntLE était couvert à 100 %, mais 4 de ses 12 mutants survivaient. ChatUniTest a aussi eu des difficultés : aucun test de readIntLE ne compilait sans une correction manuelle, et il a retiré lui-même 4 tests dont l'oracle était faux. 
+
+Nous avons ensuite ajouté les tests manquants et nous sommes passés à 50/58 mutants tués (26/32 pour XMLReaderUtils, 24/26 pour EndianUtils). Les tests que nous avons dû ajouter concernaient les valeurs limites et les états internes que ChatUniTest ne testait pas. Au final il reste 8 mutants et 7 sont équivalents.
+
+ChatUniTest est un bon outil, mais il ne faut pas oublier de revérifier après lui.
+
+## 10. Déclaration d'utilisation de l'intelligence artificielle générative
+
+Outils d'intelligence artificielle : Claude Opus 5.5 (Anthropic), consulté le 7, 11 et 12 octobre 2026 ; qwen2.5-coder:7b, exécuté localement avec Ollama par ChatUniTest, entre le 29 et le 30 septembre 2026 et le 11 octobre ;
+
+Génération de tests : qwen2.5-coder:7b a été utilisé par ChatUniTest pour générer les tests du paquet generated; 
+
+Claude a été utilisé pour proposer une structure du rapport qui suit les étapes et les critères d'évaluation de l'énoncé ; 
+
+Compréhension et approfondissement : Claude a été utilisé pour expliquer le fonctionnement des outils, notamment la configuration de PIT dans le pom, la différence entre mutants survivants, non couverts et en timeout, ainsi que la lecture des logs de ChatUniTest et l'approfondissement des cas limites; 
+
+Travail réalisé par l'équipe : le choix des classes, l'exécution de ChatUniTest, l'écriture des tests manuels et la validation finale du rapport ; Confidentialité et sécurité : le code analysé provient du projet libre Apache Tika, qui est public. Les seuls renseignements personnels présents dans les fichiers consultés par l'outil sont les noms et matricules des membres du l'équipe, inscrits dans le rapport. Aucun autre renseignement personnel n'a été partagé.
+
+Paragraphe écrit en suivant la structure énoncée ici: https://boite-outils.bib.umontreal.ca/trouver-evaluer/iag?p=5377614

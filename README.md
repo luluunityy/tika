@@ -33,8 +33,8 @@ Couverture de départ, mesurée par JaCoCo avec les tests de base de Tika:
 
 | Classe | Tests dédiés existants | Instructions | Branches | Lignes |
 | :--- | :--- | :---: | :---: | :---: |
-| XMLReaderUtils | XMLReaderUtilsTest | 42 % (540/1282) | 34 % (40/118) | 48 % (202/422) |
-| EndianUtils | EndianUtilsTest | 23 % (158/685) | 36 % (10/28) | 26 % (31/121) |
+| XMLReaderUtils | XMLReaderUtilsTest | 42 % (540/1282) | 33 % (40/118) | 47 % (202/422) |
+| EndianUtils | EndianUtilsTest | 23 % (158/685) | 35 % (10/28) | 25 % (31/121) |
 
 Dans ces classes, nous avons ciblé les méthodes suivantes. Le tableau donne leur état avec les tests dédiés originaux (XMLReaderUtilsTest et EndianUtilsTest), qui sont aussi ceux utilisés pour l'analyse de mutation de départ :
 
@@ -153,6 +153,8 @@ En résumé on trouve que l'IA écrit des oracles pertinents et spécifiques qua
 
 ## 4. Analyse de mutation avec PIT
 
+Les mesures ont été faites avec OpenJDK 17.0.20.1 et Maven 3.9.12, en supprimant le dossier target/ avant chaque mesure. Avec Java 21, les résultats des tests générés sur setPoolSize varient légèrement (ex: 5/17 au lieu de 4/17).
+
 PIT 1.20.0 (avec pitest-junit5-plugin 1.2.2) est ajouté dans tika-core/pom.xml. La configuration cible XMLReaderUtils et EndianUtils, avec les tests originaux, nos tests manuels et les paquets generated. Commande :
 
 ```
@@ -265,7 +267,7 @@ Fichiers : XMLReaderUtilsGetAttrValueTest et XMLReaderUtilsSetPoolSizeTest, dans
 - But : vérifier que setPoolSize(0) vide les deux pools internes, de parsers SAX et de constructeurs DOM.
 - Données : 0 est la valeur limite entre le cas (poolSize < 0, exception) et le remplissage des pools (poolSize > 0).
 - Oracle : la Javadoc indique que « if a value of 0 is passed in, no SAXParsers or DOMBuilders will be pooled ». Les champs SAX_PARSERS et DOM_BUILDERS étant privés, le test les lit par réflexion et vérifie que leur taille est 0.
-- Mutants tués : suppression des deux appels à clear() (lignes 970 et 990), et les bornes des conditions poolSize < 0 et poolSize > 0 (lignes 954 et 991).
+- Mutants tués : suppression des deux appels à clear() (lignes 970 et 990), et les bornes des conditions poolSize < 0 et poolSize > 0 (lignes 954, 971 et 991). À la ligne 971, avec poolSize >= 0, la méthode essaie de créer une ArrayBlockingQueue de capacité 0, ce qui lance une IllegalArgumentException.
 
 ### XMLReaderUtilsSetPoolSizeTest.testPoolsAreFilled
 
@@ -275,6 +277,8 @@ Fichiers : XMLReaderUtilsGetAttrValueTest et XMLReaderUtilsSetPoolSizeTest, dans
 - Mutants tués : les conditions inversées des lignes 971, 974, 991 et 993 (si poolSize > 0 et les boucles de remplissage).
 
 @AfterEach remet la taille par défaut après chaque test
+
+Avec la suite complète, PIT classe aussi en timeout la suppression de unlock() sur le verrou du pool de parsers SAX (ligne 984) : le verrou n'est jamais relâché et l'exécution se bloque. Comme pour la ligne 999, c'est un blocage et non une assertion qui le détecte. Avec ce mutant, les 14 mutants détectés de setPoolSize sont tous expliqués.
 
 ### EndianUtilsManualTest.testGetUShortWithoutOffsetReadsFromStart
 

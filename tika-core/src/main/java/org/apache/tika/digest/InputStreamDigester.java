@@ -64,6 +64,10 @@ public class InputStreamDigester implements Digester {
 
     private MessageDigest newMessageDigest() {
         try {
+            //Vulnérabilité numéro 1
+            if (StringUtils.isBlank(algorithm)) {
+                return MessageDigest.getInstance("SHA-224");
+            }
             Provider provider = getProvider();
             if (provider == null) {
                 return MessageDigest.getInstance(algorithm);

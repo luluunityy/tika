@@ -19,16 +19,46 @@ name: main jdk17 build
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, tache3 ]
     paths-ignore:
       - 'docs/**'
   push:
-    branches: [ main ]
+    branches: [ main, tache3 ]
     paths-ignore:
       - 'docs/**'
 
 jobs:
+  semgrep:
+    name: Analyse de Semgrep
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Installer Semgrep
+        run: pip install semgrep
+
+      - name: Lancer Semgrep
+        run: |
+          semgrep scan --config p/java --metrics=off \
+            --baseline-commit "$(git merge-base origin/main HEAD)" \
+            --error \
+            --json-output=semgrep-report.json
+
+      - name: Sauvegarde du rapport Semgrep
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep-report.json
   build:
+    needs: semgrep
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:

@@ -25,6 +25,7 @@ import java.security.SecureRandom;
 import java.util.Set;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
+import javax.crypto.KeyGenerator;
 
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
@@ -69,6 +70,17 @@ public abstract class CryptoParser extends DelegatingParser {
         return types;
     }
 
+    // Vulnérabilité 2: On génère une clé blowfish, la clé est de 64 bits donc d'une taille dangereuse
+    public static Key generateBlowfishKey() {
+        try {
+            KeyGenerator keyGen = KeyGenerator.getInstance("Blowfish");
+            keyGen.init(64);
+            return keyGen.generateKey();
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+    
     public void parse(TikaInputStream tis, ContentHandler handler, Metadata metadata,
                       ParseContext context) throws IOException, SAXException, TikaException {
         try {

@@ -33,12 +33,19 @@ Binome: Marguerite Rouleau 20311630 et
     - Ce qu'on a fait: Dans private MessageDigest newMessageDigest(), on ajoute une condition qui dit que si on a pas configuré un algorithme (StringUtils.isBlank(algorithm)) on va lui dire par défaut d'utiliser le sha224. Dans notre situation, une personne qui oublie de configurer son algorithme va se retrouver avec une sécurité faible.
 
     - Résultat avec Semgrep: Le résultat avec semgrep est que on trouve 1 finding dans notre fichier. Il dit: This code uses a 224-bit hash function, which is deprecated or disallowed in some security policies. Consider updating to a stronger hash function such as SHA-384 or higher to ensure compliance and security
-    2. 
-    - Vulnérabilité choisie:
-    - Fichier Modifié:
-    - Pourquoi c'est vulnérable:
-    - Ce qu'on a fait:
-    - Résultat avec Semgrep:
+
+    2. Type 2: Avoir une clé trop courte
+
+    - Vulnérabilité choisie: id: java.lang.security.audit.blowfish-insufficient-key-size.blowfish-insufficient-key-size
+
+    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java, fichier ou on utilise des clés
+
+    - Pourquoi c'est vulnérable: C'est vulnérable d'avoir une clé courte car plus la clé est courte plus il y a de risque quelle soit trouvé car il y a de moins en moins de combinaisons possbiles. Le standard pour une bonne clé cest 128 bits. Si quelqun utilise cette méthode pour chiffrer ce sera risqué.
+
+    - Ce qu'on a fait: On a créé une méthode generateBlowfishKey() qui crée une clé. Puisque le standard c'est 128, on a utilisé une clé de moins de 128 bits. Donc ici par exemple on a pris 64 bits.
+
+    - Résultat avec Semgrep: Dans mon résulat quand je fait semgrep dans mon fichier j'obtient 2 code findings: blowfish-insufficient-key-size.blowfish-insufficient-key-size et use-of-blowfish.use-of-blowfish. Donc semgrep voit que la taille est trop petite et il dit aussi que j'utilise blowfish.
+
     3. 
     - Vulnérabilité choisie:
     - Fichier Modifié:

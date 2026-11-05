@@ -19,6 +19,7 @@ Binome: Marguerite Rouleau 20311630 et
     Pour choisir les vulnérabilités on a fait apparaitre la liste des 60 vulnérabilités de semgrep et on a choisi des vulnérabilités de catégories différentes.
 
     Commandes faites dans powershell pour voir les 60 vulnérabilités
+
         Invoke-WebRequest https://semgrep.dev/c/p/java -OutFile ..\regles-p-java.yml
         Select-String -Path ..\regles-p-java.yml -Pattern "^\s*- id:|^\s*id:" | ForEach-Object { $_.Line.Trim() }
 
@@ -46,11 +47,16 @@ Binome: Marguerite Rouleau 20311630 et
 
     - Résultat avec Semgrep: Dans mon résulat quand je fait semgrep dans mon fichier j'obtient 2 code findings: blowfish-insufficient-key-size.blowfish-insufficient-key-size et use-of-blowfish.use-of-blowfish. Donc semgrep voit que la taille est trop petite et il dit aussi que j'utilise blowfish.
 
-    3. 
-    - Vulnérabilité choisie:
-    - Fichier Modifié:
-    - Pourquoi c'est vulnérable:
-    - Ce qu'on a fait:
+    3. Type 3: Déserialisation non sécuritaire
+
+    - Vulnérabilité choisie: id: java.lang.security.jackson-unsafe-deserialization.jackson-unsafe-deserialization
+
+    - Fichier Modifié: tika-serialization\src\main\java\org\apache\tika\serialization\JsonMetadata.java
+
+    - Pourquoi c'est vulnérable: Ça c'est vulnérable car quelqu'un de mal intentionné pourrait envoyer son fichier a traiter  en laissant son JSON indiquer quelle classe créer. 
+
+    - Ce qu'on a fait: On a fait une version pas sécuritaire de la méthode fromJson qui elle a son type(Metadata.class) de connu d'avance. La fonction fromJsonAnyType prend n'importe quel type alors c'est l'individu malveillant qui peut choisir quel genre d'objet il va créer.
+    
     - Résultat avec Semgrep:
     4. 
      - Vulnérabilité choisie:

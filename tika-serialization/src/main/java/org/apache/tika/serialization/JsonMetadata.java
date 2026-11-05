@@ -122,6 +122,16 @@ public class JsonMetadata {
         return OBJECT_MAPPER.readValue(reader, Metadata.class);
     }
 
+    // Vulnérabilité 3 : Version pas sécuritaire de fromJson, on ne connait pas le type
+    public static Object fromJsonAnyType(Reader reader) throws IOException {
+        if (reader == null) {
+            return null;
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enableDefaultTyping();
+        return mapper.readValue(reader, Object.class);
+    }
+
     public static void setPrettyPrinting(boolean prettyPrint) {
         PRETTY_PRINT = prettyPrint;
     }

@@ -28,6 +28,8 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.poi.hdgf.extractor.VisioTextExtractor;
 import org.apache.poi.hpbf.extractor.PublisherTextExtractor;
@@ -61,6 +63,7 @@ import org.apache.tika.sax.BodyContentHandler;
 import org.apache.tika.sax.EmbeddedContentHandler;
 import org.apache.tika.sax.XHTMLContentHandler;
 import org.apache.tika.utils.StringUtils;
+
 
 /**
  * Defines a Microsoft document content extractor.
@@ -389,4 +392,14 @@ public class OfficeParser extends AbstractOfficeParser {
         return null;
     }
 
+    //Vulnérabilité 4: Utiliser le mode ECB pour chiffrer ou déchiffrer sans aléatoire alors les blocs pareils
+    //donnent des chiffrements pareils alors quelqun de malveillant pourrait tenter de reconnaitre
+    //des patterns
+
+    public static byte[] decryptECB(byte[] data, byte[] keyBytes)
+            throws GeneralSecurityException {
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(keyBytes, "AES"));
+        return cipher.doFinal(data);
+    }
 }

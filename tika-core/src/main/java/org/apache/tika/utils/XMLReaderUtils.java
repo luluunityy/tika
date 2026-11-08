@@ -271,6 +271,14 @@ public class XMLReaderUtils implements Serializable {
         return factory;
     }
 
+    // type 5 de vulnerabilite
+    public static DocumentBuilderFactory getInsecureDocumentBuilderFactory()
+            throws ParserConfigurationException {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", true);
+        return factory;
+    }
+
     /**
      * Returns the DOM builder specified in this parsing context.
      * If a builder is not explicitly specified, then a builder

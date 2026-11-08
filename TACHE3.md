@@ -152,3 +152,21 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
 4. Comparaison du rapport Semgrep obtenu avant les modifications avec le rapport obtenu après l’introduction des vulnérabilités
 
 5. Rickroll
+
+
+________________________________
+
+Type 5: Référence à une entité externe XML non restreinte (XXE), CWE: 611
+# 1. Vulnerabilite :  java.lang.security.audit.xxe.documentbuilderfactory-external-general-entities-true.documentbuilderfactory-external-general-entities-true 
+
+XML External Entities permettent parfois etre permissive, ce qui veut dire qu'on peut avoir des entities externes qui pointent vers des fichiers locaux ou des fichiers distant. 
+Cela peut mener a la lecture de fichier locaux sensibles sur le serveur, ou 
+des requetes non autorisees sur le serveur internete, ou a des denis de services.
+
+
+Fichies atteinds:  XMLReaderUtils.java
+
+Solutions: On a defini une instance qui indiquant specifiquement de ne pas 
+permettre la lecture d'external entities setFeature("http://xml.org/sax/features/external-general-entities", false)
+
+Evidement, pour les tests, on le mettra ce parametre sur  "true" pour tester semgrep

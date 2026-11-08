@@ -1,6 +1,6 @@
 Tâche 3
 
-Binome: Marguerite Rouleau 20311630 et 
+Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
 
 1. Analyse de départ
 

@@ -17,6 +17,7 @@
 package org.apache.tika.parser;
 
 import java.io.IOException;
+import java.net.Socket;
 import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
 import java.security.Key;
@@ -26,6 +27,7 @@ import java.util.Set;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.KeyGenerator;
+import javax.crypto.spec.IvParameterSpec;
 
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
@@ -79,6 +81,20 @@ public abstract class CryptoParser extends DelegatingParser {
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    // Vulnérabilité 6: Utilisation d'un vecteur d'initialisation (IV) statique
+    public static IvParameterSpec getStaticIv() {
+        byte[] iv = {
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+        };
+        return new IvParameterSpec(iv);
+    }
+
+    // Vulnerabilite 7: Connexion socket non chiffree
+    public static Socket openUnencryptedSocket(String host, int port) throws IOException {
+        return new Socket(host, port);
     }
     
     public void parse(TikaInputStream tis, ContentHandler handler, Metadata metadata,

@@ -170,3 +170,38 @@ Solutions: On a defini une instance qui indiquant specifiquement de ne pas
 permettre la lecture d'external entities setFeature("http://xml.org/sax/features/external-general-entities", false)
 
 Evidement, pour les tests, on le mettra ce parametre sur  "true" pour tester semgrep
+Resultat Semgrep: 1 match trouve (ligne 274: factory.setFeature("http://xml.org/sax/features/external-general-entities", true)) - statut ERROR.
+
+Semgrep verifie donc bien la valeur booleen setFeature, et tant que "true", semgrep bloque le cde. 
+
+
+________________________________
+
+6. Type 6: Vecteur d'initialisation statique ou prédictible, CWE: 329
+#  Vulnerabilite :  java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
+
+Les vecteurs d'initialisation (IV) statiques permettent pas d'avoir un bon chiffrement, ce qui veut dire que le meme texte clair chiffre avec la meme cle va toujours donner le meme resultat.
+Cela peut mener a des attaques ou un attaquant qui intercepte les messages peut deviner des patterns ou rejouer des paquets sur le reseau internete, et donc affaiblir la securite.
+
+Fichies atteinds:  CryptoParser.java
+Solutions: On doit generer un vecteur d'initialisation aleatoire a chaque fois avec SecureRandom pour empecher la repetition des blocs chiffres.
+Lors de nos les tests, on va coder un tableau de byte[] fixe en dur dans IvParameterSpec
+Resultat : 
+- 1 match trouve (ligne 91: new IvParameterSpec(iv)) - statut WARNING.
+- Le tableau fixe defini en dur (byte[] iv = {...}) qui est directement dans new IvParameterSpec(iv) a correctement ete trouve.  Semgrep aurait ignore la ligne si on avait utilise SecureRandom pour generer des octets aleatoires, car le vecteur ne serait plus previsible.
+
+
+
+________________________________
+
+7. Type 7: Transmission en clair via socket non chiffre (CWE: 319)
+#  Vulnerabilite :  java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+
+Les sockets standards Java envoient les donnees directement en texte clair sans protection, ce qui veut dire que la communication sur le reseau se fait sans aucun chiffrement.
+Cela peut mener a des problemes ou un individu malveillant qui ecoute le reseau internete peut intercepter et lire tout le flux dinformation et voler des donnees sensibles.
+Fichies atteinds:  CryptoParser.java
+Solutions: On doit utiliser un SSLSocket ou passer par SSLSocketFactory pour chiffrer toute la connexion avec TLS.
+Resultat: 1 match trouve (ligne 97: new Socket(host, port)) - statut WARNING. La regle signale que le flux passe en texte clair.
+
+
+

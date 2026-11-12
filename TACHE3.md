@@ -205,3 +205,20 @@ Resultat: 1 match trouve (ligne 97: new Socket(host, port)) - statut WARNING. La
 
 
 
+
+Utilisation de l'IA:
+Usage de Gemini pour l'analyse de document, 
+la documentation de semgrep:
+
+- Parmi les vulnerabilites proposees, dont les 60, on pourrait en choisir n'importe lesquelles, ou y a-t-il des critères ? 
+ - faison une etude du XML External entity, et comment la vulnerabilte s'expose dans ce code
+- On a defini une instance indiquant specifiquement de ne pas permettre la lecture d'external entities setFeature(..., true) : pourquoi true et pas false ? (validation du rôle du booleen dans la règle Semgrep)
+
+
+et le listages des vulnerabilites et triee celle ayant le plus d'impact sur la securite du code; comprendre les vulnerabilites et a valider des solutions/comprehensions proposee;
+
+- comment tester ça avec Semgrep ? donne la doc  
+- Pour commenter ces résultats, est-ce juste de dire que (pour le type 7) semgrep voit que l'on utilise des sockets standards Java ce qui veut dire que ?
+
+
+

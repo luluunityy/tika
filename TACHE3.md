@@ -130,28 +130,6 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
 
           401┆ Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
 
-    5. 
-    - Vulnérabilité choisie:
-    - Fichier Modifié:
-    - Pourquoi c'est vulnérable:
-    - Ce qu'on a fait:
-    - Résultat avec Semgrep:
-    6. 
-    - Vulnérabilité choisie:
-    - Fichier Modifié:
-    - Pourquoi c'est vulnérable:
-    - Ce qu'on a fait:
-    - Résultat avec Semgrep:
-    7. 
-    - Vulnérabilité choisie:
-    - Fichier Modifié:
-    - Pourquoi c'est vulnérable:
-    - Ce qu'on a fait:
-    - Résultat avec Semgrep:
-
-4. Comparaison du rapport Semgrep obtenu avant les modifications avec le rapport obtenu après l’introduction des vulnérabilités
-
-5. Rickroll
 
 
 ________________________________
@@ -206,6 +184,37 @@ Resultat: 1 match trouve (ligne 97: new Socket(host, port)) - statut WARNING. La
 
 
 
+
+4. Comparaison du rapport Semgrep obtenu avant les modifications avec le rapport obtenu après l’introduction des vulnérabilités
+Avant les modifs, 
+Note : Semgrep sur le code trouvait 11 erreurs de securite que nous avons decide d'ignorer pour la suite de notre rapport, en utilisant l'option --baseline-commit vers notre commit de depart
+
+Apres les modifications faites:
+- 7 vulnerabilites introduites 
+    - SHA-224, 
+    - Blowfish 64 bits, 
+    - désérialisation Jackson, 
+    - AES en mode ECB,  
+    - XXE, 
+    - IV statique 
+    - socket en clair
+Qu'on peut retrouver dans semgrep-report.json plus en detail.
+
+
+
+## 5. Rickroll
+
+Nous avons choisi de bien faire les choses pour le rickroll en configurant le workflow Github Action dans main-jdk17-build.yml.  
+A la detection d'un echec lors d'un test Maven (ou une etape du build) le commentaire est poste automatiquement sous la PR avec un gif de Rick Astley. 
+Nous avons choisi de l'implementer via un script qui utilise directement l'API de git  pour poster le commentaire sur la PR, plutôt que d'utiliser des dependances externes,  car cela nous evite d'ajouter une action externe et surtout plus de fun un message plus "fun" et customisable.
+
+ 
+
+
+
+
+
+
 Utilisation de l'IA:
 Usage de Gemini pour l'analyse de document, 
 la documentation de semgrep:
@@ -219,6 +228,4 @@ et le listages des vulnerabilites et triee celle ayant le plus d'impact sur la s
 
 - comment tester ça avec Semgrep ? donne la doc  
 - Pour commenter ces résultats, est-ce juste de dire que (pour le type 7) semgrep voit que l'on utilise des sockets standards Java ce qui veut dire que ?
-
-
 

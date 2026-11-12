@@ -17,6 +17,10 @@
 
 name: main jdk17 build
 
+permissions:
+  pull-requests: write
+  contents: read
+
 on:
   pull_request:
     branches: [ main, tache3 ]

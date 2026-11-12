@@ -87,7 +87,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '### X - Build FAILED!!\n![Rickroll](https://media.giphy.com/media/Vuw9m5wXviFIQ/giphy.gif)\n\n> *Never gonna give you up, never gonna let your tests down...*'
+              body: '### A test broke our CI💔...\n![Rickroll](https://media.giphy.com/media/Vuw9m5wXviFIQ/giphy.gif)\n\n> *Never gonna give you up, never gonna let your tests down...*'
             })
 
   e2e-tests:

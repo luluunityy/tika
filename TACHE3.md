@@ -16,7 +16,7 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
 
 3. Modification du code de Tika pour ajouter les 7 vulnérabilités
 
-    Pour choisir les vulnérabilités on a fait apparaitre la liste des 60 vulnérabilités de semgrep et on a choisi des vulnérabilités de catégories différentes.
+    Pour choisir les vulnérabilités on a fait apparaitre la liste des 60 règles de vulnérabilité de semgrep et on a choisi des vulnérabilités de catégories différentes.
 
     Commandes faites dans powershell pour voir les 60 vulnérabilités
 
@@ -25,7 +25,7 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
 
     1. Type 1: Le hachage cryptographique faible, CWE: 328
 
-    - Vulnérabilité choisie: id: java.lang.security.audit.crypto.use-of-sha224.use-of-sha224
+    - Vulnérabilité choisie: java.lang.security.audit.crypto.use-of-sha224.use-of-sha224
 
     - Fichier Modifié: tika-core\src\main\java\org\apache\tika\digest\InputStreamDigester.java, fichier ou il y a déja du hachage.
 
@@ -46,7 +46,7 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
 
     2. Type 2: Avoir une clé trop courte, CWE: 326
 
-    - Vulnérabilité choisie: id: java.lang.security.audit.blowfish-insufficient-key-size.blowfish-insufficient-key-size
+    - Vulnérabilité choisie: java.lang.security.audit.blowfish-insufficient-key-size.blowfish-insufficient-key-size
 
     - Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java, fichier ou on utilise des clés
 
@@ -55,15 +55,14 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
     - Ce qu'on a fait: On a créé une méthode generateBlowfishKey() qui crée une clé. Puisque le standard c'est 128, on a utilisé une clé de moins de 128 bits. Donc ici par exemple on a pris 64 bits.
 
     - Résultat avec Semgrep: Dans mon résulat quand je fait semgrep dans mon fichier j'obtient 2 code findings: blowfish-insufficient-key-size.blowfish-insufficient-key-size et use-of-blowfish.use-of-blowfish. Donc semgrep voit que la taille est trop petite et il dit aussi que j'utilise blowfish.
-
-        ❯❱ java.lang.security.audit.blowfish-insufficient-key-size.blowfish-insufficient-key-size
+❯❱ java.lang.security.audit.blowfish-insufficient-key-size.blowfish-insufficient-key-size
           ❰❰ Blocking ❱❱
           Using less than 128 bits for Blowfish is considered insecure. Use 128 bits or more, or switch to use
           AES instead.
           Details: https://sg.run/9o74
 
-           77┆ KeyGenerator keyGen = KeyGenerator.getInstance("Blowfish");
-           78┆ keyGen.init(64);
+           78┆ KeyGenerator keyGen = KeyGenerator.getInstance("Blowfish");
+           79┆ keyGen.init(64);
 
     ❯❱ java.lang.security.audit.crypto.use-of-blowfish.use-of-blowfish
           ❰❰ Blocking ❱❱
@@ -73,11 +72,11 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
           community/Using_the_Java_Cryptographic_Extensions for more information.
           Details: https://sg.run/ZE4n
 
-           77┆ KeyGenerator keyGen = KeyGenerator.getInstance("Blowfish");
+           78┆ KeyGenerator keyGen = KeyGenerator.getInstance("Blowfish");
 
     3. Type 3: Déserialisation non sécuritaire, CWE: 502
 
-    - Vulnérabilité choisie: id: java.lang.security.jackson-unsafe-deserialization.jackson-unsafe-deserialization
+    - Vulnérabilité choisie: java.lang.security.jackson-unsafe-deserialization.jackson-unsafe-deserialization
 
     - Fichier Modifié: tika-serialization\src\main\java\org\apache\tika\serialization\JsonMetadata.java
 
@@ -101,7 +100,7 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
 
     4. Utiliser un mode mauvais, CWE: 327
 
-     - Vulnérabilité choisie: id: java.lang.security.audit.crypto.ecb-cipher.ecb-cipher
+     - Vulnérabilité choisie: java.lang.security.audit.crypto.ecb-cipher.ecb-cipher
 
     - Fichier Modifié: tika-parsers\tika-parsers-standard\tika-parsers-standard-modules\tika-parser-microsoft-module\src\main\java\org\apache\tika\parser\microsoft\OfficeParser.java
 
@@ -130,92 +129,102 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
 
           401┆ Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
 
+    5. Type 5: Référence à une entité externe XML non restreinte (XXE), CWE: 611
 
+    - Vulnérabilité choisie: java.lang.security.audit.xxe.documentbuilderfactory-external-general-entities-true.documentbuilderfactory-external-general-entities-true
 
-________________________________
+    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\utils\XMLReaderUtils.java
 
-Type 5: Référence à une entité externe XML non restreinte (XXE), CWE: 611
-# 1. Vulnerabilite :  java.lang.security.audit.xxe.documentbuilderfactory-external-general-entities-true.documentbuilderfactory-external-general-entities-true 
+    - Pourquoi c'est vulnérable: XML External Entities permettent parfois etre permissive, ce qui veut dire qu'on peut avoir des entities externes qui pointent vers des fichiers locaux ou des fichiers distant. Cela peut mener a la lecture de fichier locaux sensibles sur le serveur, ou des requetes non autorisees sur le serveur internete, ou a des denis de services.
 
-XML External Entities permettent parfois etre permissive, ce qui veut dire qu'on peut avoir des entities externes qui pointent vers des fichiers locaux ou des fichiers distant. 
-Cela peut mener a la lecture de fichier locaux sensibles sur le serveur, ou 
-des requetes non autorisees sur le serveur internete, ou a des denis de services.
+    - Ce qu'on a fait: Ajoute une nouvelle methode getInsecureDocumentBuilderFactory() dans XMLReaderUtils.java. La nouvelle methode fait un DocumentBuilderFactory et active la lecture des entites externes. Solutions: On a defini une instance qui indique specifiquement de ne pas permettre la lecture d'external entities setFeature("http://xml.org/sax/features/external-general-entities", false). Evidement, pour les tests, on  mettra ce parametre sur "true" pour tester semgrep
 
+    - Résultat avec Semgrep: 1 match trouve (ligne 274: factory.setFeature("http://xml.org/sax/features/external-general-entities", true)) - statut ERROR. Semgrep verifie donc bien la valeur booleen setFeature, et tant que "true", semgrep bloque le cde.Le scan complet du fichier avec p/java montre aussi xmlinputfactory-possible-xxe (ligne 311). Ce finding existait déjà avant nos modifications, il fait partie des 11 findings de départ.
+    
+ ❯❯❱ java.lang.security.audit.xxe.documentbuilderfactory-external-general-entities-true.documentbuilderfactory-
+       external-general-entities-true
+          ❰❰ Blocking ❱❱
+          External entities are allowed for factory. This is vulnerable to XML external entity attacks.
+          Disable this by setting the feature "http://xml.org/sax/features/external-general-entities" to
+          false.
+          Details: https://sg.run/JgPy
 
-Fichies atteinds:  XMLReaderUtils.java
+           ▶▶┆ Autofix ▶ factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+          278┆ factory.setFeature("http://xml.org/sax/features/external-general-entities", true);
 
-Solutions: On a defini une instance qui indiquant specifiquement de ne pas 
-permettre la lecture d'external entities setFeature("http://xml.org/sax/features/external-general-entities", false)
+    ❯❱ java.lang.security.xmlinputfactory-possible-xxe.xmlinputfactory-possible-xxe
+          ❰❰ Blocking ❱❱
+          XML external entities are not explicitly disabled for this XMLInputFactory. This could be vulnerable
+          to XML external entity vulnerabilities. Explicitly disable external entities by setting
+          "javax.xml.stream.isSupportingExternalEntities" to false.
+          Details: https://sg.run/XBwA
 
-Evidement, pour les tests, on le mettra ce parametre sur  "true" pour tester semgrep
-Resultat Semgrep: 1 match trouve (ligne 274: factory.setFeature("http://xml.org/sax/features/external-general-entities", true)) - statut ERROR.
+          315┆ XMLInputFactory factory = XMLInputFactory.newFactory();
 
-Semgrep verifie donc bien la valeur booleen setFeature, et tant que "true", semgrep bloque le cde. 
+    6. Type 6: Vecteur d'initialisation statique ou prédictible, CWE: 329
 
+    - Vulnérabilité choisie: java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
 
-________________________________
+    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java
 
-6. Type 6: Vecteur d'initialisation statique ou prédictible, CWE: 329
-#  Vulnerabilite :  java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
+    - Pourquoi c'est vulnérable: Les vecteurs d'initialisation (IV) statiques permettent pas d'avoir un bon chiffrement, ce qui veut dire que le meme texte clair chiffre avec la meme cle va toujours donner le meme resultat. Cela peut mener a des attaques ou un attaquant qui intercepte les messages peut deviner des patterns ou rejouer des paquets sur le reseau internete, et donc affaiblir la securite.
 
-Les vecteurs d'initialisation (IV) statiques permettent pas d'avoir un bon chiffrement, ce qui veut dire que le meme texte clair chiffre avec la meme cle va toujours donner le meme resultat.
-Cela peut mener a des attaques ou un attaquant qui intercepte les messages peut deviner des patterns ou rejouer des paquets sur le reseau internete, et donc affaiblir la securite.
+    - Ce qu'on a fait: Solutions: On doit generer un vecteur d'initialisation aleatoire a chaque fois avec SecureRandom pour empecher la repetition des blocs chiffres. Lors de nos les tests, on va coder un tableau de byte[] fixe en dur dans IvParameterSpec
 
-Fichies atteinds:  CryptoParser.java
-Solutions: On doit generer un vecteur d'initialisation aleatoire a chaque fois avec SecureRandom pour empecher la repetition des blocs chiffres.
-Lors de nos les tests, on va coder un tableau de byte[] fixe en dur dans IvParameterSpec
-Resultat : 
-- 1 match trouve (ligne 91: new IvParameterSpec(iv)) - statut WARNING.
-- Le tableau fixe defini en dur (byte[] iv = {...}) qui est directement dans new IvParameterSpec(iv) a correctement ete trouve.  Semgrep aurait ignore la ligne si on avait utilise SecureRandom pour generer des octets aleatoires, car le vecteur ne serait plus previsible.
+    - Résultat avec Semgrep:
+        - 1 match trouve (ligne 91: new IvParameterSpec(iv)) - statut WARNING.
+        - Le tableau fixe defini en dur (byte[] iv = {...}) qui est directement dans new IvParameterSpec(iv) a correctement ete trouve.  Semgrep aurait ignore la ligne si on avait utilise SecureRandom pour generer des octets aleatoires, car le vecteur ne serait plus previsible. Si on fait le scan complet du fichier on va obtenir aussi les 2 findings de la vulnérabilité 2 car elles sont aussi dans ce fichier.
 
+    ❯❱ java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
+          ❰❰ Blocking ❱❱
+          Initialization Vectors (IVs) for block ciphers should be randomly generated each time they are used.
+          Using a static IV means the same plaintext encrypts to the same ciphertext every time, weakening the
+          strength of the encryption.
+          Details: https://sg.run/BkB5
 
+           88┆ byte[] iv = {
+           89┆     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+           90┆     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+           91┆ };
+           92┆ return new IvParameterSpec(iv);
 
-________________________________
+    7. Type 7: Transmission en clair via socket non chiffre, CWE: 319
 
-7. Type 7: Transmission en clair via socket non chiffre (CWE: 319)
-#  Vulnerabilite :  java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+    - Vulnérabilité choisie: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
 
-Les sockets standards Java envoient les donnees directement en texte clair sans protection, ce qui veut dire que la communication sur le reseau se fait sans aucun chiffrement.
-Cela peut mener a des problemes ou un individu malveillant qui ecoute le reseau internete peut intercepter et lire tout le flux dinformation et voler des donnees sensibles.
-Fichies atteinds:  CryptoParser.java
-Solutions: On doit utiliser un SSLSocket ou passer par SSLSocketFactory pour chiffrer toute la connexion avec TLS.
-Resultat: 1 match trouve (ligne 97: new Socket(host, port)) - statut WARNING. La regle signale que le flux passe en texte clair.
+    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java
 
+    - Pourquoi c'est vulnérable: Les sockets standards Java envoient les donnees directement en texte clair sans protection, ce qui veut dire que la communication sur le reseau se fait sans aucun chiffrement. Cela peut mener a des problemes ou un individu malveillant qui ecoute le reseau internet peut intercepter et lire tout le flux d'information et voler des donnees sensibles.
 
+    - Ce qu'on a fait: Solutions: On doit utiliser un SSLSocket ou passer par SSLSocketFactory pour chiffrer toute la connexion avec TLS.
 
+    - Résultat avec Semgrep: 1 match trouve (ligne 97: new Socket(host, port)) - statut WARNING. La regle signale que le flux passe en texte clair. Si on fait le scan complet ça donne 4 vulnérabilités, les 2 de la vulnérabilité 2, celle de la 6 et celle de la 7.
 
+    ❯❱ java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+          ❰❰ Blocking ❱❱
+          Detected use of a Java socket that is not encrypted. As a result, the traffic could be read by an
+          attacker intercepting the network traffic. Use an SSLSocket created by 'SSLSocketFactory' or
+          'SSLServerSocketFactory' instead.
+          Details: https://sg.run/W8zA
+
+           97┆ return new Socket(host, port);
 
 4. Comparaison du rapport Semgrep obtenu avant les modifications avec le rapport obtenu après l’introduction des vulnérabilités
-Avant les modifs, 
-Note : Semgrep sur le code trouvait 11 erreurs de securite que nous avons decide d'ignorer pour la suite de notre rapport, en utilisant l'option --baseline-commit vers notre commit de depart
 
-Apres les modifications faites:
-- 7 vulnerabilites introduites 
-    - SHA-224, 
-    - Blowfish 64 bits, 
-    - désérialisation Jackson, 
-    - AES en mode ECB,  
-    - XXE, 
-    - IV statique 
-    - socket en clair
-Qu'on peut retrouver dans semgrep-report.json plus en detail.
+Au final, les vulnérabilités 1, 3, 6 et 7 trouvent chacune 1 finding. Les vulnérabilités 2, 4 et 5 trouvent chacunes 2 findings ou la deuxième du type 5 est une vulnérabilité qui existait déja. Ce qui fait un total de 9 nouveaux findings. On obtient donc un total de 20 findings dans le code.
 
+On lance la commande : semgrep scan --config p/java --json-output=semgrep-apres.json --text-output=semgrep-apres.txt
+Et on obtient bel et bien 20 findings.
 
+Pour voir seulement les nouveaux findings on a lancé: semgrep scan --config p/java --baseline-commit a2d75c2
+Et on a bien obtenu 9 findings.
 
-## 5. Rickroll
-
+5. Rickroll
 Nous avons choisi de bien faire les choses pour le rickroll en configurant le workflow Github Action dans main-jdk17-build.yml.  
 A la detection d'un echec lors d'un test Maven (ou une etape du build) le commentaire est poste automatiquement sous la PR avec un gif de Rick Astley. 
 Nous avons choisi de l'implementer via un script qui utilise directement l'API de git  pour poster le commentaire sur la PR, plutôt que d'utiliser des dependances externes,  car cela nous evite d'ajouter une action externe et surtout plus de fun un message plus "fun" et customisable.
 
- 
-
-
-
-
-
-
-Utilisation de l'IA:
+6. Utilisation de l'IA:
 Usage de Gemini pour l'analyse de document, 
 la documentation de semgrep:
 
@@ -228,4 +237,5 @@ et le listages des vulnerabilites et triee celle ayant le plus d'impact sur la s
 
 - comment tester ça avec Semgrep ? donne la doc  
 - Pour commenter ces résultats, est-ce juste de dire que (pour le type 7) semgrep voit que l'on utilise des sockets standards Java ce qui veut dire que ?
+
 

@@ -62,7 +62,7 @@ jobs:
           name: semgrep-report
           path: semgrep-report.json
   build:
-    needs: semgrep
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:

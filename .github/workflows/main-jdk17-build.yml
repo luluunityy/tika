@@ -23,11 +23,11 @@ permissions:
 
 on:
   pull_request:
-    branches: [ main, tache3 ]
+    branches: [ main, tache3, rickroll ]
     paths-ignore:
       - 'docs/**'
   push:
-    branches: [ main, tache3 ]
+    branches: [ main, tache3, rickroll ]
     paths-ignore:
       - 'docs/**'
 

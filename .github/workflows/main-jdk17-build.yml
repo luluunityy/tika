@@ -23,11 +23,11 @@ permissions:
 
 on:
   pull_request:
-    branches: [ main, tache3 ]
+    branches: [ main, tache3, rickroll ]
     paths-ignore:
       - 'docs/**'
   push:
-    branches: [ main, tache3 ]
+    branches: [ main, tache3, rickroll ]
     paths-ignore:
       - 'docs/**'
 
@@ -62,7 +62,7 @@ jobs:
           name: semgrep-report
           path: semgrep-report.json
   build:
-    needs: semgrep
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:

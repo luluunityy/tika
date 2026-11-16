@@ -141,7 +141,7 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
 
     - Résultat avec Semgrep: 1 match trouve (ligne 274: factory.setFeature("http://xml.org/sax/features/external-general-entities", true)) - statut ERROR. Semgrep verifie donc bien la valeur booleen setFeature, et tant que "true", semgrep bloque le cde.Le scan complet du fichier avec p/java montre aussi xmlinputfactory-possible-xxe (ligne 311). Ce finding existait déjà avant nos modifications, il fait partie des 11 findings de départ.
     
- ❯❯❱ java.lang.security.audit.xxe.documentbuilderfactory-external-general-entities-true.documentbuilderfactory-
+  ❯❱ java.lang.security.audit.xxe.documentbuilderfactory-external-general-entities-true.documentbuilderfactory-
        external-general-entities-true
           ❰❰ Blocking ❱❱
           External entities are allowed for factory. This is vulnerable to XML external entity attacks.
@@ -149,65 +149,65 @@ Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
           false.
           Details: https://sg.run/JgPy
 
-           ▶▶┆ Autofix ▶ factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-          278┆ factory.setFeature("http://xml.org/sax/features/external-general-entities", true);
+        ▶▶┆ Autofix ▶ factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        278┆ factory.setFeature("http://xml.org/sax/features/external-general-entities", true);
 
-    ❯❱ java.lang.security.xmlinputfactory-possible-xxe.xmlinputfactory-possible-xxe
-          ❰❰ Blocking ❱❱
-          XML external entities are not explicitly disabled for this XMLInputFactory. This could be vulnerable
-          to XML external entity vulnerabilities. Explicitly disable external entities by setting
-          "javax.xml.stream.isSupportingExternalEntities" to false.
-          Details: https://sg.run/XBwA
+❯❱ java.lang.security.xmlinputfactory-possible-xxe.xmlinputfactory-possible-xxe
+        ❰❰ Blocking ❱❱
+        XML external entities are not explicitly disabled for this XMLInputFactory. This could be vulnerable
+        to XML external entity vulnerabilities. Explicitly disable external entities by setting
+        "javax.xml.stream.isSupportingExternalEntities" to false.
+        Details: https://sg.run/XBwA
 
-          315┆ XMLInputFactory factory = XMLInputFactory.newFactory();
+        315┆ XMLInputFactory factory = XMLInputFactory.newFactory();
 
-    6. Type 6: Vecteur d'initialisation statique ou prédictible, CWE: 329
+6. Type 6: Vecteur d'initialisation statique ou prédictible, CWE: 329
 
-    - Vulnérabilité choisie: java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
+- Vulnérabilité choisie: java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
 
-    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java
+- Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java
 
-    - Pourquoi c'est vulnérable: Les vecteurs d'initialisation (IV) statiques permettent pas d'avoir un bon chiffrement, ce qui veut dire que le meme texte clair chiffre avec la meme cle va toujours donner le meme resultat. Cela peut mener a des attaques ou un attaquant qui intercepte les messages peut deviner des patterns ou rejouer des paquets sur le reseau internete, et donc affaiblir la securite.
+- Pourquoi c'est vulnérable: Les vecteurs d'initialisation (IV) statiques permettent pas d'avoir un bon chiffrement, ce qui veut dire que le meme texte clair chiffre avec la meme cle va toujours donner le meme resultat. Cela peut mener a des attaques ou un attaquant qui intercepte les messages peut deviner des patterns ou rejouer des paquets sur le reseau internete, et donc affaiblir la securite.
 
-    - Ce qu'on a fait: Solutions: On doit generer un vecteur d'initialisation aleatoire a chaque fois avec SecureRandom pour empecher la repetition des blocs chiffres. Lors de nos les tests, on va coder un tableau de byte[] fixe en dur dans IvParameterSpec
+- Ce qu'on a fait: Solutions: On doit generer un vecteur d'initialisation aleatoire a chaque fois avec SecureRandom pour empecher la repetition des blocs chiffres. Lors de nos les tests, on va coder un tableau de byte[] fixe en dur dans IvParameterSpec
 
-    - Résultat avec Semgrep:
-        - 1 match trouve (ligne 91: new IvParameterSpec(iv)) - statut WARNING.
-        - Le tableau fixe defini en dur (byte[] iv = {...}) qui est directement dans new IvParameterSpec(iv) a correctement ete trouve.  Semgrep aurait ignore la ligne si on avait utilise SecureRandom pour generer des octets aleatoires, car le vecteur ne serait plus previsible. Si on fait le scan complet du fichier on va obtenir aussi les 2 findings de la vulnérabilité 2 car elles sont aussi dans ce fichier.
+- Résultat avec Semgrep:
+    - 1 match trouve (ligne 91: new IvParameterSpec(iv)) - statut WARNING.
+    - Le tableau fixe defini en dur (byte[] iv = {...}) qui est directement dans new IvParameterSpec(iv) a correctement ete trouve.  Semgrep aurait ignore la ligne si on avait utilise SecureRandom pour generer des octets aleatoires, car le vecteur ne serait plus previsible. Si on fait le scan complet du fichier on va obtenir aussi les 2 findings de la vulnérabilité 2 car elles sont aussi dans ce fichier.
 
-    ❯❱ java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
-          ❰❰ Blocking ❱❱
-          Initialization Vectors (IVs) for block ciphers should be randomly generated each time they are used.
-          Using a static IV means the same plaintext encrypts to the same ciphertext every time, weakening the
-          strength of the encryption.
-          Details: https://sg.run/BkB5
+❯❱ java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
+        ❰❰ Blocking ❱❱
+        Initialization Vectors (IVs) for block ciphers should be randomly generated each time they are used.
+        Using a static IV means the same plaintext encrypts to the same ciphertext every time, weakening the
+        strength of the encryption.
+        Details: https://sg.run/BkB5
 
-           88┆ byte[] iv = {
-           89┆     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-           90┆     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
-           91┆ };
-           92┆ return new IvParameterSpec(iv);
+        88┆ byte[] iv = {
+        89┆     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        90┆     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+        91┆ };
+        92┆ return new IvParameterSpec(iv);
 
-    7. Type 7: Transmission en clair via socket non chiffre, CWE: 319
+7. Type 7: Transmission en clair via socket non chiffre, CWE: 319
 
-    - Vulnérabilité choisie: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+- Vulnérabilité choisie: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
 
-    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java
+- Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java
 
-    - Pourquoi c'est vulnérable: Les sockets standards Java envoient les donnees directement en texte clair sans protection, ce qui veut dire que la communication sur le reseau se fait sans aucun chiffrement. Cela peut mener a des problemes ou un individu malveillant qui ecoute le reseau internet peut intercepter et lire tout le flux d'information et voler des donnees sensibles.
+- Pourquoi c'est vulnérable: Les sockets standards Java envoient les donnees directement en texte clair sans protection, ce qui veut dire que la communication sur le reseau se fait sans aucun chiffrement. Cela peut mener a des problemes ou un individu malveillant qui ecoute le reseau internet peut intercepter et lire tout le flux d'information et voler des donnees sensibles.
 
-    - Ce qu'on a fait: Solutions: On doit utiliser un SSLSocket ou passer par SSLSocketFactory pour chiffrer toute la connexion avec TLS.
+- Ce qu'on a fait: Solutions: On doit utiliser un SSLSocket ou passer par SSLSocketFactory pour chiffrer toute la connexion avec TLS.
 
-    - Résultat avec Semgrep: 1 match trouve (ligne 97: new Socket(host, port)) - statut WARNING. La regle signale que le flux passe en texte clair. Si on fait le scan complet ça donne 4 vulnérabilités, les 2 de la vulnérabilité 2, celle de la 6 et celle de la 7.
+- Résultat avec Semgrep: 1 match trouve (ligne 97: new Socket(host, port)) - statut WARNING. La regle signale que le flux passe en texte clair. Si on fait le scan complet ça donne 4 vulnérabilités, les 2 de la vulnérabilité 2, celle de la 6 et celle de la 7.
 
-    ❯❱ java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
-          ❰❰ Blocking ❱❱
-          Detected use of a Java socket that is not encrypted. As a result, the traffic could be read by an
-          attacker intercepting the network traffic. Use an SSLSocket created by 'SSLSocketFactory' or
-          'SSLServerSocketFactory' instead.
-          Details: https://sg.run/W8zA
+❯❱ java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+        ❰❰ Blocking ❱❱
+        Detected use of a Java socket that is not encrypted. As a result, the traffic could be read by an
+        attacker intercepting the network traffic. Use an SSLSocket created by 'SSLSocketFactory' or
+        'SSLServerSocketFactory' instead.
+        Details: https://sg.run/W8zA
 
-           97┆ return new Socket(host, port);
+        97┆ return new Socket(host, port);
 
 4. Comparaison du rapport Semgrep obtenu avant les modifications avec le rapport obtenu après l’introduction des vulnérabilités
 
@@ -220,13 +220,9 @@ Pour voir seulement les nouveaux findings on a lancé: semgrep scan --config p/j
 Et on a bien obtenu 9 findings.
 
 5. Rickroll
-
-Pour les cas d'echec des tests:
-
-On a cree notre propre action reusable (composite action) dans .github/actions/rickroll/action.yml.
-Sous la condition if: failure().
-Quand un test echoue, main-jdk17-build.yml appelle uses: ./.github/actions/rickroll puis l'action ecrit dans $GITHUB_STEP_SUMMARY, ce qui fait apparaitre le GIF anime de Rick Astley et le lien YouTube directement sur la page du sommaire d'execution de GitHub Actions, en plus d'un message d'avertissement dans les logs de la console.
-
+Nous avons choisi de bien faire les choses pour le rickroll en configurant le workflow Github Action dans main-jdk17-build.yml.  
+A la detection d'un echec lors d'un test Maven (ou une etape du build) le commentaire est poste automatiquement sous la PR avec un gif de Rick Astley. 
+Nous avons choisi de l'implementer via un script qui utilise directement l'API de git  pour poster le commentaire sur la PR, plutôt que d'utiliser des dependances externes,  car cela nous evite d'ajouter une action externe et surtout plus de fun un message plus "fun" et customisable.
 
 6. Utilisation de l'IA:
 Usage de Gemini pour l'analyse de document, 

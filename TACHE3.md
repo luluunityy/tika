@@ -220,9 +220,13 @@ Pour voir seulement les nouveaux findings on a lancé: semgrep scan --config p/j
 Et on a bien obtenu 9 findings.
 
 5. Rickroll
-Nous avons choisi de bien faire les choses pour le rickroll en configurant le workflow Github Action dans main-jdk17-build.yml.  
-A la detection d'un echec lors d'un test Maven (ou une etape du build) le commentaire est poste automatiquement sous la PR avec un gif de Rick Astley. 
-Nous avons choisi de l'implementer via un script qui utilise directement l'API de git  pour poster le commentaire sur la PR, plutôt que d'utiliser des dependances externes,  car cela nous evite d'ajouter une action externe et surtout plus de fun un message plus "fun" et customisable.
+
+Pour les cas d'echec des tests:
+
+On a cree notre propre action reusable (composite action) dans .github/actions/rickroll/action.yml.
+Sous la condition if: failure().
+Quand un test echoue, main-jdk17-build.yml appelle uses: ./.github/actions/rickroll puis l'action ecrit dans $GITHUB_STEP_SUMMARY, ce qui fait apparaitre le GIF anime de Rick Astley et le lien YouTube directement sur la page du sommaire d'execution de GitHub Actions, en plus d'un message d'avertissement dans les logs de la console.
+
 
 6. Utilisation de l'IA:
 Usage de Gemini pour l'analyse de document, 

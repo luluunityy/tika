@@ -1,0 +1,14 @@
+name: 'Rickroll on Failure'
+description: 'Action reusable qui affiche un Rickroll dans les logs et le resume GitHub Actions lors d un echec'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Rickroll
+      shell: bash
+      run: |
+        echo "::warning title=Rickroll::Never gonna give you up, never gonna let your tests down..."
+        echo "## 💔 Build Failed! Rickroll incoming..." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "[![Rickroll](https://media.giphy.com/media/Vuw9m5wXviFIQ/giphy.gif)](https://www.youtube.com/watch?v=dQw4w9WgXcQ)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "> *Never gonna give you up, never gonna let your tests down...*" >> $GITHUB_STEP_SUMMARY

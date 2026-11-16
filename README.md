@@ -1,250 +1,245 @@
-Welcome to Apache Tika  <https://tika.apache.org/>
-=================================================
+Tâche 3
 
-[![license](https://img.shields.io/github/license/apache/tika.svg?maxAge=2592000)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Jenkins](https://img.shields.io/jenkins/s/https/ci-builds.apache.org/job/Tika/job/tika-main-jdk17.svg?maxAge=3600)](https://ci-builds.apache.org/job/Tika/job/tika-main-jdk17/)
-[![Jenkins tests](https://img.shields.io/jenkins/t/https/ci-builds.apache.org/job/Tika/job/tika-main-jdk17.svg?maxAge=3600)](https://ci-builds.apache.org/job/Tika/job/tika-main-jdk17/lastBuild/testReport/)
-[![Maven Central](https://img.shields.io/maven-central/v/org.apache.tika/tika.svg?maxAge=86400)](http://search.maven.org/#search|ga|1|g%3A%22org.apache.tika%22)
+Binome: Marguerite Rouleau 20311630 et Yaovi Florient Gadedjro Abagha 20225447
 
-Apache Tika(TM) is a toolkit for detecting and extracting metadata and structured text content from various documents using existing parser libraries.
+1. Analyse de départ
 
-Tika is a project of the [Apache Software Foundation](https://www.apache.org).
+    La première chose que nous avons faite a été de lancer une analyse de Semgrep sur le code de Tika. Comme résultat, Semgrep a trouvé 11 findings dans Tika.
 
-Apache Tika, Tika, Apache, the Apache feather logo, and the Apache Tika project logo are trademarks of The Apache Software Foundation.
+2. Modifications du Workflow
 
-Quick Start
-===========
+    La première étape a été de choisir le Workflow. Nous avons choisi le build principal main-jdk17-build.yml parce que c'est le principal et les autres sont des variantes. 
+    
+    On a modifié le fichier main-jdk17-build.yml pour qu'il roule sur notre tâche 3 (on la ajouté dans la section 'on' de main-jdk17-build.yml) et on a fait une comparaison avec le code de base pour seulement voir les nouvelles failles qu'on ajoute. On veut ignorer les 11 findings qui étaient déja la car sinon ils feraient qu'on aurait toujours des erreurs (avec le nouveau job semgrep qui se fait a partir du commit a2d75c2, le dernier commit avant qu'on commence la tache 2, on ne compare pas main parce que main c'est notre tâche2).
 
-**Parse a file in Java:**
+    On fait aussi une sauvegarde du rapport.
 
-```java
-import org.apache.tika.Tika;
+3. Modification du code de Tika pour ajouter les 7 vulnérabilités
 
-Tika tika = new Tika();
-String text = tika.parseToString(new File("document.pdf"));
-System.out.println(text);
-```
+    Pour choisir les vulnérabilités on a fait apparaitre la liste des 60 règles de vulnérabilité de semgrep et on a choisi des vulnérabilités de catégories différentes.
 
-**From the command line:**
+    Commandes faites dans powershell pour voir les 60 vulnérabilités
 
-```bash
-java -jar tika-app-*.jar --text document.pdf
-```
+        Invoke-WebRequest https://semgrep.dev/c/p/java -OutFile ..\regles-p-java.yml
+        Select-String -Path ..\regles-p-java.yml -Pattern "^\s*- id:|^\s*id:" | ForEach-Object { $_.Line.Trim() }
 
-**Maven dependency:**
+    1. Type 1: Le hachage cryptographique faible, CWE: 328
 
-```xml
-<dependency>
-    <groupId>org.apache.tika</groupId>
-    <artifactId>tika-parsers-standard-package</artifactId>
-    <version>4.x.y</version>
-    <type>pom</type>
-</dependency>
-```
+    - Vulnérabilité choisie: java.lang.security.audit.crypto.use-of-sha224.use-of-sha224
 
-Getting Started
-===============
-Pre-built binaries of Apache Tika standalone applications are available
-from https://tika.apache.org/download.html . Pre-built binaries of all the
-Tika jars can be fetched from Maven Central or your favourite Maven mirror.
+    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\digest\InputStreamDigester.java, fichier ou il y a déja du hachage.
 
-**Tika 2.X and support for Java 8 reached End of Life (EOL) in April, 2025. 
-See [Tika Roadmap 2.x, 3.x and beyond](https://cwiki.apache.org/confluence/display/TIKA/Tika+Roadmap+--+2.x%2C+3.x+and+Beyond).** 
+    - Pourquoi c'est vulnérable: C'est une vulnérabilité au niveau de la sécurité parce que sha224 offre seulement 224 bits alors elle offre seulement 112 bits de resistance aux collisions. Donc c'est pas le meilleur au niveau de la sécurité, plus souvent on veut au moins sha-256 qui est le standard et qui a 128 bits de résitance. Sha224 ça sauve de l'espace mais c'est négligeable comparé a la perte de sécurité que ça amène. Par contre quand on vérifie le résultat semgrep, lui, dit qu'on devrait update a sha384. 
 
-Tika is based on **Java 17** and uses the [Maven 3](https://maven.apache.org) build system.
-**N.B.** [Docker](https://www.docker.com/products/personal) is used for tests in tika-integration-tests. If Docker is not installed, those tests are skipped.
+    - Ce qu'on a fait: Dans private MessageDigest newMessageDigest(), on ajoute une condition qui dit que si on a pas configuré un algorithme (StringUtils.isBlank(algorithm)) on va lui dire par défaut d'utiliser le sha224. Dans notre situation, une personne qui oublie de configurer son algorithme va se retrouver avec une sécurité faible.
 
-To build Tika from source, use the following command in the main directory:
+    - Résultat avec Semgrep: Le résultat avec semgrep est que on trouve 1 finding dans notre fichier.
 
-    ./mvnw clean install
+        ❯❱ java.lang.security.audit.crypto.use-of-sha224.use-of-sha224
+          ❰❰ Blocking ❱❱
+          This code uses a 224-bit hash function, which is deprecated or disallowed in some security policies.
+          Consider updating to a stronger hash function such as SHA-384 or higher to ensure compliance and
+          security.
+          Details: https://sg.run/Ab2KQ
 
-The Maven wrapper (`mvnw`) is included in the repository and will automatically download
-the correct Maven version if needed. On Windows, use `mvnw.cmd` instead.
+           69┆ return MessageDigest.getInstance("SHA-224");
 
-The build consists of a number of components, including a standalone runnable jar that you can use to try out Tika features. You can run it like this:
+    2. Type 2: Avoir une clé trop courte, CWE: 326
 
-    java -jar tika-app/target/tika-app-*.jar --help
+    - Vulnérabilité choisie: java.lang.security.audit.blowfish-insufficient-key-size.blowfish-insufficient-key-size
 
+    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java, fichier ou on utilise des clés
 
-To build a specific project (for example, tika-server-standard):
+    - Pourquoi c'est vulnérable: C'est vulnérable d'avoir une clé courte car plus la clé est courte plus il y a de risque quelle soit trouvé car il y a de moins en moins de combinaisons possbiles. Le standard pour une bonne clé cest 128 bits. Si quelqun utilise cette méthode pour chiffrer ce sera risqué.
 
-    ./mvnw clean install -am -pl :tika-server-standard
+    - Ce qu'on a fait: On a créé une méthode generateBlowfishKey() qui crée une clé. Puisque le standard c'est 128, on a utilisé une clé de moins de 128 bits. Donc ici par exemple on a pris 64 bits.
 
-If the ossindex-maven-plugin is causing the build to fail because a dependency
-has now been discovered to have a vulnerability:
+    - Résultat avec Semgrep: Dans mon résulat quand je fait semgrep dans mon fichier j'obtient 2 code findings: blowfish-insufficient-key-size.blowfish-insufficient-key-size et use-of-blowfish.use-of-blowfish. Donc semgrep voit que la taille est trop petite et il dit aussi que j'utilise blowfish.
+❯❱ java.lang.security.audit.blowfish-insufficient-key-size.blowfish-insufficient-key-size
+          ❰❰ Blocking ❱❱
+          Using less than 128 bits for Blowfish is considered insecure. Use 128 bits or more, or switch to use
+          AES instead.
+          Details: https://sg.run/9o74
 
-    ./mvnw clean install -Dossindex.skip
+           78┆ KeyGenerator keyGen = KeyGenerator.getInstance("Blowfish");
+           79┆ keyGen.init(64);
 
+    ❯❱ java.lang.security.audit.crypto.use-of-blowfish.use-of-blowfish
+          ❰❰ Blocking ❱❱
+          Use of Blowfish was detected. Blowfish uses a 64-bit block size that  makes it vulnerable to
+          birthday attacks, and is therefore considered non-compliant.  Instead, use a strong, secure cipher:
+          Cipher.getInstance("AES/CBC/PKCS7PADDING"). See https://owasp.org/www-
+          community/Using_the_Java_Cryptographic_Extensions for more information.
+          Details: https://sg.run/ZE4n
 
-Faster Builds
-=============
+           78┆ KeyGenerator keyGen = KeyGenerator.getInstance("Blowfish");
 
-**Fast profile** - Use `-Pfast` to skip tests, checkstyle, and spotless:
+    3. Type 3: Déserialisation non sécuritaire, CWE: 502
 
-    ./mvnw clean install -Pfast
+    - Vulnérabilité choisie: java.lang.security.jackson-unsafe-deserialization.jackson-unsafe-deserialization
 
-**Parallel builds** - Add `-T1C` to build with 1 thread per CPU core:
+    - Fichier Modifié: tika-serialization\src\main\java\org\apache\tika\serialization\JsonMetadata.java
 
-    ./mvnw clean install -Pfast -T1C
+    - Pourquoi c'est vulnérable: Ça c'est vulnérable car quelqu'un de mal intentionné pourrait envoyer son fichier a traiter  en laissant son JSON indiquer quelle classe créer. 
 
-**Maven Daemon (mvnd)** - Keeps a warm JVM running for 2-3x faster rebuilds:
+    - Ce qu'on a fait: On a fait une version pas sécuritaire de la méthode fromJson qui elle a son type(Metadata.class) de connu d'avance. La fonction fromJsonAnyType prend n'importe quel type alors c'est l'individu malveillant qui peut choisir quel genre d'objet il va créer.
 
-```bash
-# Install: https://github.com/apache/maven-mvnd
-# macOS: brew install mvndaemon/tap/mvnd
+    - Résultat avec Semgrep: Comme résultat on obtient 1 finding.
 
-# Use exactly like mvn
-mvnd clean install -Pfast
-mvnd test -pl :tika-core
-```
+        ❯❱ java.lang.security.jackson-unsafe-deserialization.jackson-unsafe-deserialization
+          ❰❰ Blocking ❱❱
+          When using Jackson to marshall/unmarshall JSON to Java objects, enabling default typing is dangerous
+          and can lead to RCE. If an attacker can control `reader` it might be possible to provide a malicious
+          JSON which can be used to exploit unsecure deserialization. In order to prevent this issue, avoid to
+          enable default typing (globally or by using "Per-class" annotations) and avoid using `Object` and
+          other dangerous types for member variable declaration which creating classes for Jackson based
+          deserialization.
+          Details: https://sg.run/GDop
 
-**Combine both** for maximum speed during development:
-
-    mvnd clean install -Pfast -T1C
-
-
-Reproducible Builds
-===================
-
-Apache Tika supports [reproducible builds](https://reproducible-builds.org/). This means
-that building the same source code with the same JDK version should produce
-byte-for-byte identical artifacts, regardless of the build machine or time.
-
-Key configuration:
-- `project.build.outputTimestamp` is set in `tika-parent/pom.xml`
-- All Maven plugins are configured to produce deterministic output
+          132┆ return mapper.readValue(reader, Object.class);
 
-To verify the build plan supports reproducibility:
+    4. Utiliser un mode mauvais, CWE: 327
 
-    ./mvnw artifact:check-buildplan
+     - Vulnérabilité choisie: java.lang.security.audit.crypto.ecb-cipher.ecb-cipher
 
-To verify two builds produce identical artifacts:
+    - Fichier Modifié: tika-parsers\tika-parsers-standard\tika-parsers-standard-modules\tika-parser-microsoft-module\src\main\java\org\apache\tika\parser\microsoft\OfficeParser.java
 
-    ./mvnw clean install -DskipTests
-    mv ~/.m2/repository/org/apache/tika tika-build-1
-    ./mvnw clean install -DskipTests
-    diff -r tika-build-1 ~/.m2/repository/org/apache/tika
+    - Pourquoi c'est vulnérable: ECB c'est un mode vulnérable parce que c'est déterministe ce qui veut dire que tout ce qui est iedntique est chiffré de manière identique. Donc c'est facile pour un attaquant de reconnaitre des patterns, un meilleur chiffrement ça ajoute de l'aléatoire dans sa manière de dire qui est chiffré comment.
 
+    - Ce qu'on a fait: On a ajouté un déchiffrement de bloc ECB avec l'algorithme AES. Quelqu'un pourrait vouloir utiliser la méthode sans savoir que c'est mauvais et il ferait des déchiffrement faibles ou avec une autre méthode faire des chiffrements faibles.
 
-Maven Dependencies
-==================
+    - Résultat avec Semgrep: Avec Semgrep on trouve 2 findings : ecb-cipher et use-of-aes-ecb ce qui fait du sens parce qu'on a aussi utilisé AES pour utiliser le mode ECB.
 
-Apache Tika provides *Bill of Material* (BOM) artifact to align Tika module versions and simplify version management. 
-To avoid convergence errors in your own project, import this
-bom or Tika's parent pom.xml in your dependency management section.
+        ❯❱ java.lang.security.audit.crypto.ecb-cipher.ecb-cipher
+          ❰❰ Blocking ❱❱
+          Cipher in ECB mode is detected. ECB mode produces the same output for the same input each time which
+          allows an attacker to intercept and replay the data. Further, ECB mode does not provide any
+          integrity checking. See https://find-sec-bugs.github.io/bugs.htm#CIPHER_INTEGRITY.
+          Details: https://sg.run/Ro9K
 
-If you use Apache Maven:
+          401┆ Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
 
-```xml
-<project>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-       <groupId>org.apache.tika</groupId>
-       <artifactId>tika-bom</artifactId>
-       <version>4.x.y</version>
-       <type>pom</type>
-       <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+    ❯❱ java.lang.security.audit.crypto.use-of-aes-ecb.use-of-aes-ecb
+          ❰❰ Blocking ❱❱
+          Use of AES with ECB mode detected. ECB doesn't provide message confidentiality and  is not
+          semantically secure so should not be used. Instead, use a strong, secure cipher:
+          Cipher.getInstance("AES/CBC/PKCS7PADDING"). See https://owasp.org/www-
+          community/Using_the_Java_Cryptographic_Extensions for more information.
+          Details: https://sg.run/dB2Y
 
-  <dependencies>
-    <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-parsers-standard-package</artifactId>
-      <type>pom</type>
-      <!-- version not required since BOM included -->
-    </dependency>
-  </dependencies>
-</project>
-```
+          401┆ Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
 
-For Gradle:
+    5. Type 5: Référence à une entité externe XML non restreinte (XXE), CWE: 611
 
-```kotlin
-dependencies {
-  implementation(platform("org.apache.tika:tika-bom:4.x.y"))
+    - Vulnérabilité choisie: java.lang.security.audit.xxe.documentbuilderfactory-external-general-entities-true.documentbuilderfactory-external-general-entities-true
 
-  // version not required since bom (platform in Gradle terms)
-  implementation("org.apache.tika:tika-parsers-standard-package@pom")
-}
-```
+    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\utils\XMLReaderUtils.java
 
-Migrating to 4.x
-================
-TBD
+    - Pourquoi c'est vulnérable: XML External Entities permettent parfois etre permissive, ce qui veut dire qu'on peut avoir des entities externes qui pointent vers des fichiers locaux ou des fichiers distant. Cela peut mener a la lecture de fichier locaux sensibles sur le serveur, ou des requetes non autorisees sur le serveur internete, ou a des denis de services.
 
-Contributing
-============
-See [CONTRIBUTING.md](CONTRIBUTING.md) and https://tika.apache.org/contribute.html
+    - Ce qu'on a fait: Ajoute une nouvelle methode getInsecureDocumentBuilderFactory() dans XMLReaderUtils.java. La nouvelle methode fait un DocumentBuilderFactory et active la lecture des entites externes. Solutions: On a defini une instance qui indique specifiquement de ne pas permettre la lecture d'external entities setFeature("http://xml.org/sax/features/external-general-entities", false). Evidement, pour les tests, on  mettra ce parametre sur "true" pour tester semgrep
 
-[![contributors](https://contributors-img.web.app/image?repo=apache/tika)](https://github.com/apache/tika/graphs/contributors)
+    - Résultat avec Semgrep: 1 match trouve (ligne 274: factory.setFeature("http://xml.org/sax/features/external-general-entities", true)) - statut ERROR. Semgrep verifie donc bien la valeur booleen setFeature, et tant que "true", semgrep bloque le cde.Le scan complet du fichier avec p/java montre aussi xmlinputfactory-possible-xxe (ligne 311). Ce finding existait déjà avant nos modifications, il fait partie des 11 findings de départ.
+    
+ ❯❯❱ java.lang.security.audit.xxe.documentbuilderfactory-external-general-entities-true.documentbuilderfactory-
+       external-general-entities-true
+          ❰❰ Blocking ❱❱
+          External entities are allowed for factory. This is vulnerable to XML external entity attacks.
+          Disable this by setting the feature "http://xml.org/sax/features/external-general-entities" to
+          false.
+          Details: https://sg.run/JgPy
 
-Building from a Specific Tag
-============================
-Let's assume that you want to build the 3.0.1 tag:
-```
-0. Download and install hub.github.com
-1. git clone https://github.com/apache/tika.git
-2. cd tika
-3. git checkout 3.0.1
-4. ./mvnw clean install
-```
+           ▶▶┆ Autofix ▶ factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+          278┆ factory.setFeature("http://xml.org/sax/features/external-general-entities", true);
 
-If a new vulnerability has been discovered between the date of the
-tag and the date you are building the tag, you may need to build with:
+    ❯❱ java.lang.security.xmlinputfactory-possible-xxe.xmlinputfactory-possible-xxe
+          ❰❰ Blocking ❱❱
+          XML external entities are not explicitly disabled for this XMLInputFactory. This could be vulnerable
+          to XML external entity vulnerabilities. Explicitly disable external entities by setting
+          "javax.xml.stream.isSupportingExternalEntities" to false.
+          Details: https://sg.run/XBwA
 
-```
-4. ./mvnw clean install -Dossindex.skip
-```
+          315┆ XMLInputFactory factory = XMLInputFactory.newFactory();
 
-If a local test is not working in your environment, please notify
- the project at dev@tika.apache.org. As an immediate workaround,
- you can turn off individual tests with e.g.:
+    6. Type 6: Vecteur d'initialisation statique ou prédictible, CWE: 329
 
-```
-4. ./mvnw clean install -Dossindex.skip -Dtest=\!UnpackerResourceTest#testPDFImages
-```
+    - Vulnérabilité choisie: java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
 
-License (see also LICENSE.txt)
-==============================
+    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java
 
-Collective work: Copyright 2011 The Apache Software Foundation.
+    - Pourquoi c'est vulnérable: Les vecteurs d'initialisation (IV) statiques permettent pas d'avoir un bon chiffrement, ce qui veut dire que le meme texte clair chiffre avec la meme cle va toujours donner le meme resultat. Cela peut mener a des attaques ou un attaquant qui intercepte les messages peut deviner des patterns ou rejouer des paquets sur le reseau internete, et donc affaiblir la securite.
 
-Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at
+    - Ce qu'on a fait: Solutions: On doit generer un vecteur d'initialisation aleatoire a chaque fois avec SecureRandom pour empecher la repetition des blocs chiffres. Lors de nos les tests, on va coder un tableau de byte[] fixe en dur dans IvParameterSpec
 
-<https://www.apache.org/licenses/LICENSE-2.0>
+    - Résultat avec Semgrep:
+        - 1 match trouve (ligne 91: new IvParameterSpec(iv)) - statut WARNING.
+        - Le tableau fixe defini en dur (byte[] iv = {...}) qui est directement dans new IvParameterSpec(iv) a correctement ete trouve.  Semgrep aurait ignore la ligne si on avait utilise SecureRandom pour generer des octets aleatoires, car le vecteur ne serait plus previsible. Si on fait le scan complet du fichier on va obtenir aussi les 2 findings de la vulnérabilité 2 car elles sont aussi dans ce fichier.
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
+    ❯❱ java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
+          ❰❰ Blocking ❱❱
+          Initialization Vectors (IVs) for block ciphers should be randomly generated each time they are used.
+          Using a static IV means the same plaintext encrypts to the same ciphertext every time, weakening the
+          strength of the encryption.
+          Details: https://sg.run/BkB5
 
-Apache Tika includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the licenses listed in the LICENSE.txt file.
+           88┆ byte[] iv = {
+           89┆     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+           90┆     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+           91┆ };
+           92┆ return new IvParameterSpec(iv);
 
-Export Control
-==============
+    7. Type 7: Transmission en clair via socket non chiffre, CWE: 319
 
-This distribution includes cryptographic software.  The country in which you currently reside may have restrictions on the import, possession, use, and/or re-export to another country, of encryption software.  BEFORE using any encryption software, please  check your country's laws, regulations and policies concerning the import, possession, or use, and re-export of encryption software, to  see if this is permitted.  See <http://www.wassenaar.org/> for more information.
+    - Vulnérabilité choisie: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
 
-The U.S. Government Department of Commerce, Bureau of Industry and Security (BIS), has classified this software as Export Commodity Control Number (ECCN) 5D002.C.1, which includes information security software using or performing cryptographic functions with asymmetric algorithms.  The form and manner of this Apache Software Foundation distribution makes it eligible for export under the License Exception ENC Technology Software Unrestricted (TSU) exception (see the BIS Export Administration Regulations, Section 740.13) for both object code and source code.
+    - Fichier Modifié: tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java
 
-The following provides more details on the included cryptographic software:
+    - Pourquoi c'est vulnérable: Les sockets standards Java envoient les donnees directement en texte clair sans protection, ce qui veut dire que la communication sur le reseau se fait sans aucun chiffrement. Cela peut mener a des problemes ou un individu malveillant qui ecoute le reseau internet peut intercepter et lire tout le flux d'information et voler des donnees sensibles.
 
-Apache Tika uses the Bouncy Castle generic encryption libraries for extracting text content and metadata from encrypted PDF files.  See <http://www.bouncycastle.org/> for more details on Bouncy Castle.  
+    - Ce qu'on a fait: Solutions: On doit utiliser un SSLSocket ou passer par SSLSocketFactory pour chiffrer toute la connexion avec TLS.
 
-Mailing Lists
-=============
+    - Résultat avec Semgrep: 1 match trouve (ligne 97: new Socket(host, port)) - statut WARNING. La regle signale que le flux passe en texte clair. Si on fait le scan complet ça donne 4 vulnérabilités, les 2 de la vulnérabilité 2, celle de la 6 et celle de la 7.
 
-* user@tika.apache.org - About using Tika
-* dev@tika.apache.org - About developing Tika
+    ❯❱ java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+          ❰❰ Blocking ❱❱
+          Detected use of a Java socket that is not encrypted. As a result, the traffic could be read by an
+          attacker intercepting the network traffic. Use an SSLSocket created by 'SSLSocketFactory' or
+          'SSLServerSocketFactory' instead.
+          Details: https://sg.run/W8zA
 
-Subscribe by sending a message to `{list}-subscribe@tika.apache.org`.
+           97┆ return new Socket(host, port);
 
-Issue Tracker
-=============
+4. Comparaison du rapport Semgrep obtenu avant les modifications avec le rapport obtenu après l’introduction des vulnérabilités
 
-https://issues.apache.org/jira/browse/TIKA
+Au final, les vulnérabilités 1, 3, 6 et 7 trouvent chacune 1 finding. Les vulnérabilités 2, 4 et 5 trouvent chacunes 2 findings ou la deuxième du type 5 est une vulnérabilité qui existait déja. Ce qui fait un total de 9 nouveaux findings. On obtient donc un total de 20 findings dans le code.
 
-Security
-========
+On lance la commande : semgrep scan --config p/java --json-output=semgrep-apres.json --text-output=semgrep-apres.txt
+Et on obtient bel et bien 20 findings.
 
-See [SECURITY.md](SECURITY.md) and https://tika.apache.org/security.html
+Pour voir seulement les nouveaux findings on a lancé: semgrep scan --config p/java --baseline-commit a2d75c2
+Et on a bien obtenu 9 findings.
+
+5. Rickroll
+
+Pour les cas d'echec des tests:
+
+On a cree notre propre action reusable (composite action) dans .github/actions/rickroll/action.yml.
+Sous la condition if: failure().
+Quand un test echoue, main-jdk17-build.yml appelle uses: ./.github/actions/rickroll puis l'action ecrit dans $GITHUB_STEP_SUMMARY, ce qui fait apparaitre le GIF anime de Rick Astley et le lien YouTube directement sur la page du sommaire d'execution de GitHub Actions, en plus d'un message d'avertissement dans les logs de la console.
+
+
+6. Utilisation de l'IA:
+Usage de Gemini pour l'analyse de document, 
+la documentation de semgrep:
+
+- Parmi les vulnerabilites proposees, dont les 60, on pourrait en choisir n'importe lesquelles, ou y a-t-il des critères ? 
+ - faison une etude du XML External entity, et comment la vulnerabilte s'expose dans ce code
+- On a defini une instance indiquant specifiquement de ne pas permettre la lecture d'external entities setFeature(..., true) : pourquoi true et pas false ? (validation du rôle du booleen dans la règle Semgrep)
+
+
+et le listages des vulnerabilites et triee celle ayant le plus d'impact sur la securite du code; comprendre les vulnerabilites et a valider des solutions/comprehensions proposee;
+
+- comment tester ça avec Semgrep ? donne la doc  
+- Pour commenter ces résultats, est-ce juste de dire que (pour le type 7) semgrep voit que l'on utilise des sockets standards Java ce qui veut dire que ?
+
+
